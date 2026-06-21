@@ -1,5 +1,5 @@
 """
-GLM Proxy v5 — 智谱 API 直连
+GLM Proxy v5.2 — 智谱 API 直连 (crash-resistant)
 Codex Responses API → 智谱 Chat Completions (open.bigmodel.cn)
 支持 SSE 流式响应
 
@@ -94,7 +94,7 @@ class ProxyHandler(BaseHTTPRequestHandler):
             headers={
                 "Authorization": f"Bearer {ZHIPU_KEY}",
                 "Content-Type": "application/json",
-                "User-Agent": "CodexGLMProxy/5.0",
+                "User-Agent": "CodexGLMProxy/5.2",
             },
             method="POST",
         )
@@ -434,7 +434,7 @@ def main():
         return
 
     ssl._create_default_https_context = ssl._create_unverified_context
-    print(f"GLM Proxy v5 (Zhipu Direct)")
+    print(f"GLM Proxy v5.2 (Zhipu Direct) — crash-resistant")
     print(f"  Listen: http://127.0.0.1:{LISTEN_PORT}")
     print(f"  Upstream: {ZHIPU_BASE}")
     print(f"  Model: {ZHIPU_MODEL}")
