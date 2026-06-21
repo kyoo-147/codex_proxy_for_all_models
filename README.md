@@ -121,6 +121,20 @@ This proxy includes critical patches discovered through extensive debugging:
 | **Forced thinking** | Reasoning consumes all tokens; tool calls never appear | `enable_thinking: False` |
 | **Missing reasoning field** | Codex doesn't send `reasoning` param; fix never triggers | Fallback when `effort` is empty |
 | **SSE without function_call** | Streaming only emits text events; tool calls lost | Added `function_call` event support in SSE stream |
+| **Proxy crash on disconnect** | Codex reports "stream disconnected before completion"; proxy process dead | ThreadingHTTPServer + socket error handling in `_sse_stream` + `handle_one_request` override |
+
+### Debug Logging (Optional)
+
+Set `GLM_PROXY_DEBUG` to a file path to enable request/response logging:
+```bash
+# Windows
+set GLM_PROXY_DEBUG=C:\Users\you\.codex\proxy_debug.log
+python glm_proxy.py
+
+# Linux/macOS
+export GLM_PROXY_DEBUG=/tmp/proxy_debug.log
+python glm_proxy.py
+```
 
 ## API Endpoints
 
@@ -140,6 +154,19 @@ This proxy includes critical patches discovered through extensive debugging:
   subscription plan. This proxy uses the general `/api/paas/v4` endpoint.
 - **Reasoning levels**: When thinking is enabled, GLM-5.2 uses significant tokens for
   reasoning before outputting content. The proxy disables this by default.
+
+## Changelog
+
+### v5.2 (Jun 2026)
+- **Crash-resistant**: `ThreadingHTTPServer` + `handle_one_request` override + `_sse_stream` socket error handling
+- Client disconnects mid-stream no longer kill the proxy process
+- Debug logging made optional via `GLM_PROXY_DEBUG` env var
+- Security: removed hardcoded API key placeholder
+
+### v5.1 (Jun 2026)
+- Initial public release: Responses API → Chat API protocol translation
+- `enable_thinking: False` fix for tool calling
+- SSE streaming with `function_call` event support
 
 ## Related Projects
 
