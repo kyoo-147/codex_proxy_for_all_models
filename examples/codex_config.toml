@@ -1,0 +1,16 @@
+# Codex config for GLM-5.2 via glm_proxy.py
+# Place at: ~/.codex/config.toml
+
+model = "glm-5.2"
+model_provider = "glm-proxy"
+
+# Trust your home directory (required for Codex to run)
+[projects.'c:\\users\\YOUR_USERNAME']
+trust_level = "trusted"
+
+# Proxy provider definition
+[model_providers.glm-proxy]
+name = "GLM Proxy"
+wire_api = "responses"
+base_url = "http://127.0.0.1:8787"
+env_key = "DUMMY_API_KEY"
