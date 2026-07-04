@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import socket
 import urllib.error
 import urllib.request
 
@@ -25,6 +26,8 @@ def _post_chat_completion(base_url, api_key, extra_headers, payload):
         body = exc.read().decode("utf-8", errors="replace")[:500]
         raise RuntimeError(f"Upstream {exc.code}: {body}") from exc
     except TimeoutError as exc:
+        raise RuntimeError("Upstream timeout") from exc
+    except socket.timeout as exc:
         raise RuntimeError("Upstream timeout") from exc
     except urllib.error.URLError as exc:
         raise RuntimeError(f"Upstream network error: {exc.reason}") from exc

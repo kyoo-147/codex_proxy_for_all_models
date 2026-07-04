@@ -101,10 +101,12 @@ class ServerIntegrationTests(unittest.TestCase):
         time.sleep(0.05)
 
     def tearDown(self):
-        self.proxy.shutdown()
-        self.proxy.server_close()
-        self.upstream.shutdown()
-        self.upstream.server_close()
+        if hasattr(self, "proxy"):
+            self.proxy.shutdown()
+            self.proxy.server_close()
+        if hasattr(self, "upstream"):
+            self.upstream.shutdown()
+            self.upstream.server_close()
 
     def test_health_and_models(self):
         health = json.loads(urllib.request.urlopen(f"{self.base_url}/health").read())
@@ -137,6 +139,23 @@ class ServerIntegrationTests(unittest.TestCase):
         self.assertEqual(payload["status"], "in_progress")
         self.assertEqual(payload["output"][0]["type"], "function_call")
         self.assertEqual(payload["output"][0]["name"], "shell_command")
+
+    def test_tool_loop_full_round_trip(self):
+        req = urllib.request.Request(
+            f"{self.base_url}/v1/responses",
+            data=json.dumps({
+                "input": [
+                    {"type": "function_call", "call_id": "call_1", "name": "shell_command", "arguments": '{"cmd":"echo hi"}'},
+                    {"type": "function_call_output", "call_id": "call_1", "output": "hi"},
+                ],
+            }).encode("utf-8"),
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+        payload = json.loads(urllib.request.urlopen(req).read())
+
+        self.assertEqual(payload["output"][0]["type"], "message")
+        self.assertEqual(payload["output"][0]["content"][0]["text"], "OK")
 
 
 class PoolModeServerIntegrationTests(unittest.TestCase):
@@ -230,15 +249,14 @@ class PoolModeServerIntegrationTests(unittest.TestCase):
 
 
 class UpstreamErrorIntegrationTests(unittest.TestCase):
-    def setUp(self):
-        self.upstream_errors = []
-
+    @staticmethod
+    def _make_error_handler(status_code: int):
         class ErrorFakeHandler(BaseHTTPRequestHandler):
             def do_POST(self):
                 length = int(self.headers.get("Content-Length", "0"))
                 self.rfile.read(length)
-                body = json.dumps({"error": "test error"}).encode("utf-8")
-                self.send_response(429)
+                body = json.dumps({"error": f"test {status_code}"}).encode("utf-8")
+                self.send_response(status_code)
                 self.send_header("Content-Type", "application/json")
                 self.send_header("Content-Length", str(len(body)))
                 self.end_headers()
@@ -247,8 +265,11 @@ class UpstreamErrorIntegrationTests(unittest.TestCase):
             def log_message(self, *args):
                 return
 
+        return ErrorFakeHandler
+
+    def _setup(self, handler):
         upstream_port = free_port()
-        self.upstream = HTTPServer(("127.0.0.1", upstream_port), ErrorFakeHandler)
+        self.upstream = HTTPServer(("127.0.0.1", upstream_port), handler)
         self.upstream_thread = threading.Thread(target=self.upstream.serve_forever, daemon=True)
         self.upstream_thread.start()
 
@@ -273,7 +294,7 @@ class UpstreamErrorIntegrationTests(unittest.TestCase):
         self.upstream.shutdown()
         self.upstream.server_close()
 
-    def test_429_returns_rate_limit_json_error(self):
+    def _assert_error(self, expected_code: int, expected_type: str):
         req = urllib.request.Request(
             f"{self.base_url}/v1/responses",
             data=json.dumps({"input": "hello"}).encode("utf-8"),
@@ -284,9 +305,33 @@ class UpstreamErrorIntegrationTests(unittest.TestCase):
             urllib.request.urlopen(req)
             self.fail("expected error")
         except urllib.error.HTTPError as exc:
-            self.assertEqual(exc.code, 429)
+            self.assertEqual(exc.code, expected_code)
             body = json.loads(exc.read())
-            self.assertEqual(body["error"]["type"], "rate_limit_error")
+            self.assertEqual(body["error"]["type"], expected_type)
+
+    def test_401_returns_authentication_error(self):
+        self._setup(self._make_error_handler(401))
+        self._assert_error(401, "authentication_error")
+
+    def test_403_returns_authentication_error(self):
+        self._setup(self._make_error_handler(403))
+        self._assert_error(403, "authentication_error")
+
+    def test_429_returns_rate_limit_error(self):
+        self._setup(self._make_error_handler(429))
+        self._assert_error(429, "rate_limit_error")
+
+    def test_500_returns_upstream_error(self):
+        self._setup(self._make_error_handler(500))
+        self._assert_error(502, "upstream_error")
+
+    def test_503_returns_upstream_error(self):
+        self._setup(self._make_error_handler(503))
+        self._assert_error(502, "upstream_error")
+
+    def test_404_returns_not_found_error(self):
+        self._setup(self._make_error_handler(404))
+        self._assert_error(404, "not_found_error")
 
 
 if __name__ == "__main__":

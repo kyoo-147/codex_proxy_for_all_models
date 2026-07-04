@@ -91,8 +91,10 @@ def create_server(config: ProxyConfig) -> ThreadingHTTPServer:
                     self._json(429, {"error": {"message": msg, "type": "rate_limit_error"}})
                 elif msg.startswith("Upstream 5"):
                     self._json(502, {"error": {"message": msg, "type": "upstream_error"}})
-                elif "401" in msg or "403" in msg:
+                elif "401" in msg:
                     self._json(401, {"error": {"message": msg, "type": "authentication_error"}})
+                elif "403" in msg:
+                    self._json(403, {"error": {"message": msg, "type": "authentication_error"}})
                 elif "404" in msg:
                     self._json(404, {"error": {"message": msg, "type": "not_found_error"}})
                 else:
