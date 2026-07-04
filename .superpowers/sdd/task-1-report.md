@@ -59,7 +59,7 @@ Done.
 - `tests/test_pool_config.py`
 
 ### Commit
-- Pending
+- `71576cc` `fix: validate codex pool topology`
 
 ### Concerns
 - Validation now enforces curated Codex profile presence for pool mode. Intentional per review, but future non-Codex pool variants would need explicit contract change.
