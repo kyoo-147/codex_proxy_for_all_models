@@ -24,11 +24,11 @@ def build_model_catalog(config):
     return {"object": "list", "models": models}
 
 
-def resolve_requested_profile(requested_model, default_slug=None):
+def resolve_requested_profile(requested_model, config):
     if requested_model and requested_model.startswith("codex-"):
         return requested_model
-    if default_slug:
-        return default_slug
+    if config and config.pool_config:
+        return config.pool_config.default_visible_slug()
     return DEFAULT_BALANCED_SLUG
 
 

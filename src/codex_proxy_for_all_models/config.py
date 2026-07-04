@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from typing import Mapping
 
 from .pool_config import PoolConfig, load_pool_config
+from .router import PoolRouter
 
 
 @dataclass(slots=True)
@@ -23,6 +24,7 @@ class ProxyConfig:
     context_window: int = 262144
     max_output_tokens: int = 16384
     pool_config: PoolConfig | None = None
+    pool_router: PoolRouter | None = None
 
     def __post_init__(self) -> None:
         self.upstream_base_url = self.upstream_base_url.rstrip("/")
@@ -40,6 +42,9 @@ class ProxyConfig:
 def load_config(env: Mapping[str, str]) -> ProxyConfig:
     pool_config = load_pool_config(env)
     if pool_config is not None:
+        from .router import PoolRouter
+
+        pool_router = PoolRouter(pool_config)
         default_provider, default_candidate = pool_config.default_candidate()
         return ProxyConfig(
             upstream_base_url=default_provider.base_url,
@@ -49,6 +54,7 @@ def load_config(env: Mapping[str, str]) -> ProxyConfig:
             bridge_upstream_api_key=env.get(default_candidate.api_key_env, "").strip(),
             bridge_upstream_model=default_candidate.model,
             provider_label="Codex Pool Router",
+            pool_router=pool_router,
             listen_host=env.get("CODEX_PROXY_LISTEN_HOST", "127.0.0.1").strip() or "127.0.0.1",
             listen_port=int(env.get("CODEX_PROXY_LISTEN_PORT", "8787")),
             debug_log=env.get("CODEX_PROXY_DEBUG_LOG", "").strip(),

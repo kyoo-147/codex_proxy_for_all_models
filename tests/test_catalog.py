@@ -39,8 +39,18 @@ class CatalogTests(unittest.TestCase):
         self.assertEqual(payload["models"][0]["slug"], "qwen/qwen3-8b")
     def test_resolve_requested_profile_returns_profile_slug(self):
         self.assertEqual(resolve_requested_profile("codex-fast", None), "codex-fast")
+
     def test_resolve_requested_profile_returns_default_when_none(self):
-        self.assertEqual(resolve_requested_profile(None, "codex-strong"), "codex-strong")
+        config = ProxyConfig(
+            upstream_base_url="", upstream_api_key="", upstream_model="codex-strong",
+            pool_config=PoolConfig(mode="pool", profiles={
+                "codex-fast": ProfileConfig("codex-fast", "Codex Fast", ["coding_fast"]),
+                "codex-balanced": ProfileConfig("codex-balanced", "Codex Balanced", ["cheap_free"]),
+                "codex-strong": ProfileConfig("codex-strong", "Codex Strong", ["coding_strong"]),
+            }, pools={}, providers={}),
+        )
+        self.assertEqual(resolve_requested_profile(None, config), "codex-balanced")
+
     def test_resolve_requested_profile_defaults_to_balanced(self):
         self.assertEqual(resolve_requested_profile(None, None), "codex-balanced")
 

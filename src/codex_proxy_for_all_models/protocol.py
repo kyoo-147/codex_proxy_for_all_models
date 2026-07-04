@@ -107,6 +107,14 @@ def upstream_to_responses_payload(upstream: dict, upstream_model: str) -> dict:
     }
 
 
+def extract_reasoning_effort(request: dict) -> str:
+    reasoning = request.get("reasoning", {}) or {}
+    effort = str(reasoning.get("effort", "medium")).strip().lower()
+    if effort not in {"low", "medium", "high"}:
+        return "medium"
+    return effort
+
+
 def model_catalog_payload(
     model_slug: str,
     display_name: str,
