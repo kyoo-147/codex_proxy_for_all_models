@@ -96,3 +96,40 @@ Done.
 
 ### Concerns
 - Bridge intentionally routes pool mode through one concrete upstream candidate until later router tasks replace single-upstream request path.
+
+---
+
+## Task 1 Third Fix Pass
+
+### Status
+Done.
+
+### Review Findings Addressed
+- Kept pool-mode Codex surface curated by preserving `upstream_model` as `codex-balanced` and using new bridge-only fields for outgoing upstream base URL, API key, and raw model slug.
+- Stopped pool-mode leaks of raw upstream slug in `/v1/models`, Responses API metadata, and CLI startup summary.
+- Made bridge credential selection respect candidate-level `api_key_env`, with fail-fast validation when candidate key env is missing even if provider key env exists.
+- Added pool-mode runtime tests for curated `/models`, curated Responses metadata, outgoing bridge model slug, and outgoing bridge bearer token.
+
+### TDD Evidence
+- Red run: `python -m unittest tests.test_pool_config tests.test_server -v`
+- Result: failed on missing bridge fields, raw pool-mode slug leak, and provider-level credential reuse.
+- Green run: `python -m unittest tests.test_pool_config tests.test_server -v`
+- Result: 22 tests passed.
+
+### Verification
+- `python -m unittest tests.test_pool_config tests.test_config tests.test_server tests.test_protocol -v`
+- Result: 28 tests passed.
+
+### Files Changed
+- `src/codex_proxy_for_all_models/config.py`
+- `src/codex_proxy_for_all_models/pool_config.py`
+- `src/codex_proxy_for_all_models/server.py`
+- `src/codex_proxy_for_all_models/cli.py`
+- `tests/test_pool_config.py`
+- `tests/test_server.py`
+
+### Commit
+- Pending
+
+### Concerns
+- Pool-mode bridge still intentionally pins to default `codex-balanced` first candidate until later router work adds live profile selection and fallback routing.

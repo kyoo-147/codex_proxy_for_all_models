@@ -104,6 +104,7 @@ def _parse_pool_config(data: Mapping[str, Any], env: Mapping[str, str]) -> PoolC
     _validate_curated_profiles(profiles)
     _validate_profile_pool_order(profiles, pools)
     _validate_candidate_providers(pools, providers)
+    _validate_candidate_api_keys(pools, env)
     return PoolConfig(mode=mode, profiles=profiles, providers=providers, pools=pools)
 
 
@@ -230,6 +231,16 @@ def _validate_candidate_providers(
                 raise ValueError(
                     f"Unknown provider '{candidate.provider}' in pool '{pool_name}'"
                 )
+
+
+def _validate_candidate_api_keys(
+    pools: Mapping[str, PoolDefinition],
+    env: Mapping[str, str],
+) -> None:
+    for pool in pools.values():
+        for candidate in pool.candidates:
+            if not env.get(candidate.api_key_env, "").strip():
+                raise ValueError(f"Missing env var: {candidate.api_key_env}")
 
 
 def _require_text(raw: Mapping[str, Any], key: str, default: str = "") -> str:

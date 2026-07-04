@@ -419,8 +419,93 @@ capabilities = ["free"]
 
         self.assertEqual(config.upstream_base_url, "https://integrate.api.nvidia.com/v1")
         self.assertEqual(config.upstream_api_key, "token-1")
-        self.assertEqual(config.upstream_model, "z-ai/glm-5.2")
+        self.assertEqual(config.upstream_model, "codex-balanced")
+        self.assertEqual(config.bridge_upstream_model, "z-ai/glm-5.2")
         self.assertEqual(config.provider_label, "Codex Pool Router")
+
+    def test_pool_mode_bridge_uses_candidate_api_key_env(self):
+        pool_path = self.write_toml(
+            """
+mode = "pool"
+
+[profiles.codex-fast]
+visible_slug = "codex-fast"
+display_name = "Codex Fast"
+pool_order = ["cheap_free"]
+
+[profiles.codex-balanced]
+visible_slug = "codex-balanced"
+display_name = "Codex Balanced"
+pool_order = ["cheap_free"]
+
+[profiles.codex-strong]
+visible_slug = "codex-strong"
+display_name = "Codex Strong"
+pool_order = ["cheap_free"]
+
+[providers.shared]
+base_url = "https://integrate.api.nvidia.com/v1"
+provider_label = "NVIDIA Build"
+api_key_env = "SHARED_PROVIDER_KEY"
+
+[[pools.cheap_free.candidates]]
+provider = "shared"
+model = "z-ai/glm-5.2"
+api_key_env = "CANDIDATE_KEY"
+capabilities = ["free"]
+"""
+        )
+        env = {
+            "CODEX_PROXY_CONFIG_PATH": pool_path,
+            "SHARED_PROVIDER_KEY": "provider-token",
+            "CANDIDATE_KEY": "candidate-token",
+        }
+
+        config = load_config(env)
+
+        self.assertEqual(config.upstream_api_key, "provider-token")
+        self.assertEqual(config.bridge_upstream_api_key, "candidate-token")
+
+    def test_pool_mode_bridge_requires_candidate_api_key_env(self):
+        pool_path = self.write_toml(
+            """
+mode = "pool"
+
+[profiles.codex-fast]
+visible_slug = "codex-fast"
+display_name = "Codex Fast"
+pool_order = ["cheap_free"]
+
+[profiles.codex-balanced]
+visible_slug = "codex-balanced"
+display_name = "Codex Balanced"
+pool_order = ["cheap_free"]
+
+[profiles.codex-strong]
+visible_slug = "codex-strong"
+display_name = "Codex Strong"
+pool_order = ["cheap_free"]
+
+[providers.shared]
+base_url = "https://integrate.api.nvidia.com/v1"
+provider_label = "NVIDIA Build"
+api_key_env = "SHARED_PROVIDER_KEY"
+
+[[pools.cheap_free.candidates]]
+provider = "shared"
+model = "z-ai/glm-5.2"
+api_key_env = "CANDIDATE_KEY"
+capabilities = ["free"]
+"""
+        )
+
+        with self.assertRaisesRegex(ValueError, "Missing env var: CANDIDATE_KEY"):
+            load_config(
+                {
+                    "CODEX_PROXY_CONFIG_PATH": pool_path,
+                    "SHARED_PROVIDER_KEY": "provider-token",
+                }
+            )
 
     def test_pool_mode_cli_prints_listen_and_profile_summary(self):
         pool_path = self.write_toml(
@@ -486,7 +571,7 @@ capabilities = ["tool_call"]
         self.assertIn("[proxy] mode=pool", output)
         self.assertIn("Listen: http://127.0.0.1:8787", output)
         self.assertIn("Profiles: codex-fast, codex-balanced, codex-strong", output)
-        self.assertIn("Default model: z-ai/glm-5.2", output)
+        self.assertIn("Default model: codex-balanced", output)
 
 
 if __name__ == "__main__":

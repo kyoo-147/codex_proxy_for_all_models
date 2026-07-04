@@ -70,7 +70,7 @@ def create_server(config: ProxyConfig) -> ThreadingHTTPServer:
 
             if path in {"/responses", "/v1/responses"}:
                 request = json.loads(raw.decode("utf-8"))
-                upstream_request = responses_to_chat_request(request, config.upstream_model)
+                upstream_request = responses_to_chat_request(request, config.bridge_upstream_model)
                 upstream_response = _call_upstream(config, upstream_request)
                 payload = upstream_to_responses_payload(upstream_response, config.upstream_model)
                 self._json(200, payload)
@@ -78,7 +78,7 @@ def create_server(config: ProxyConfig) -> ThreadingHTTPServer:
 
             if path in {"/chat/completions", "/v1/chat/completions"}:
                 request = json.loads(raw.decode("utf-8"))
-                request["model"] = config.upstream_model
+                request["model"] = config.bridge_upstream_model
                 upstream_response = _call_upstream(config, request)
                 self._json(200, upstream_response)
                 return
@@ -100,13 +100,13 @@ def create_server(config: ProxyConfig) -> ThreadingHTTPServer:
 
 def _call_upstream(config: ProxyConfig, payload: dict) -> dict:
     headers = {
-        "Authorization": f"Bearer {config.upstream_api_key}",
+        "Authorization": f"Bearer {config.bridge_upstream_api_key}",
         "Content-Type": "application/json",
         "User-Agent": "codex-proxy-for-all-models/0.1",
     }
     headers.update(config.extra_headers or {})
     request = urllib.request.Request(
-        f"{config.upstream_base_url}/chat/completions",
+        f"{config.bridge_upstream_base_url}/chat/completions",
         data=json.dumps(payload).encode("utf-8"),
         headers=headers,
         method="POST",

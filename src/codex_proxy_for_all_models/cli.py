@@ -11,7 +11,7 @@ def main() -> int:
     if config.pool_config is not None:
         print("[proxy] mode=pool")
         print(f"  Profiles: {', '.join(config.pool_config.visible_slugs())}")
-        print(f"  Default model: {config.upstream_model}")
+        print(f"  Default model: {config.pool_config.default_visible_slug()}")
     else:
         print("[proxy] mode=single-upstream")
         print(f"  Upstream: {config.upstream_base_url}")
