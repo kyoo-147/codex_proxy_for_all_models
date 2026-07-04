@@ -1,9 +1,19 @@
 mode = "pool"
 
-[profiles.codex_balanced]
+[profiles."codex-fast"]
+visible_slug = "codex-fast"
+display_name = "Codex Fast"
+pool_order = ["cheap_free"]
+
+[profiles."codex-balanced"]
 visible_slug = "codex-balanced"
 display_name = "Codex Balanced"
 pool_order = ["cheap_free", "coding_fast"]
+
+[profiles."codex-strong"]
+visible_slug = "codex-strong"
+display_name = "Codex Strong"
+pool_order = ["coding_fast"]
 
 [providers.nvidia_free]
 base_url = "https://integrate.api.nvidia.com/v1"

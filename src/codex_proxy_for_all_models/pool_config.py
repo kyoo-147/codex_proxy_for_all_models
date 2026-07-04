@@ -10,6 +10,9 @@ except ModuleNotFoundError:  # pragma: no cover
     import tomli as tomllib  # type: ignore[no-redef]
 
 
+REQUIRED_CURATED_PROFILES = ("codex-fast", "codex-balanced", "codex-strong")
+
+
 @dataclass(slots=True)
 class ProviderConfig:
     name: str
@@ -50,6 +53,8 @@ class PoolConfig:
         return [profile.visible_slug for profile in self.profiles.values()]
 
     def default_visible_slug(self) -> str:
+        if "codex-balanced" in self.profiles:
+            return self.profiles["codex-balanced"].visible_slug
         visible = self.visible_slugs()
         return visible[0] if visible else "codex-balanced"
 
@@ -80,12 +85,15 @@ def _parse_pool_config(data: Mapping[str, Any], env: Mapping[str, str]) -> PoolC
     profiles = _parse_profiles(data.get("profiles", {}))
     pools = _parse_pools(data.get("pools", {}))
     providers = _parse_providers(data.get("providers", {}), pools, env)
+    _validate_curated_profiles(profiles)
+    _validate_profile_pool_order(profiles, pools)
+    _validate_candidate_providers(pools, providers)
     return PoolConfig(mode=mode, profiles=profiles, providers=providers, pools=pools)
 
 
 def _parse_profiles(raw: Any) -> dict[str, ProfileConfig]:
     if raw in ({}, None):
-        return {}
+        raise ValueError("Pool config missing profiles")
     if not isinstance(raw, dict):
         raise ValueError("Invalid pool config: profiles must be table")
     profiles: dict[str, ProfileConfig] = {}
@@ -97,12 +105,14 @@ def _parse_profiles(raw: Any) -> dict[str, ProfileConfig]:
             display_name=_require_text(item, "display_name"),
             pool_order=_require_text_list(item, "pool_order"),
         )
+    if not profiles:
+        raise ValueError("Pool config missing profiles")
     return profiles
 
 
 def _parse_pools(raw: Any) -> dict[str, PoolDefinition]:
     if raw in ({}, None):
-        return {}
+        raise ValueError("Pool config missing pools")
     if not isinstance(raw, dict):
         raise ValueError("Invalid pool config: pools must be table")
     pools: dict[str, PoolDefinition] = {}
@@ -125,6 +135,8 @@ def _parse_pools(raw: Any) -> dict[str, PoolDefinition]:
                 )
             )
         pools[name] = PoolDefinition(candidates=candidates)
+    if not pools:
+        raise ValueError("Pool config missing pools")
     return pools
 
 
@@ -134,7 +146,7 @@ def _parse_providers(
     env: Mapping[str, str],
 ) -> dict[str, ProviderConfig]:
     if raw in ({}, None):
-        return {}
+        raise ValueError("Pool config missing providers")
     if not isinstance(raw, dict):
         raise ValueError("Invalid pool config: providers must be table")
 
@@ -158,7 +170,43 @@ def _parse_providers(
             api_key_env=api_key_env,
             api_key=api_key,
         )
+    if not providers:
+        raise ValueError("Pool config missing providers")
     return providers
+
+
+def _validate_curated_profiles(profiles: Mapping[str, ProfileConfig]) -> None:
+    missing = [name for name in REQUIRED_CURATED_PROFILES if name not in profiles]
+    if missing:
+        raise ValueError(f"Missing curated profiles: {', '.join(missing)}")
+
+
+def _validate_profile_pool_order(
+    profiles: Mapping[str, ProfileConfig],
+    pools: Mapping[str, PoolDefinition],
+) -> None:
+    for profile_name, profile in profiles.items():
+        if not profile.pool_order:
+            raise ValueError(f"Profile '{profile_name}' missing pool_order")
+        for pool_name in profile.pool_order:
+            if pool_name not in pools:
+                raise ValueError(
+                    f"Profile '{profile_name}' references unknown pool '{pool_name}'"
+                )
+
+
+def _validate_candidate_providers(
+    pools: Mapping[str, PoolDefinition],
+    providers: Mapping[str, ProviderConfig],
+) -> None:
+    for pool_name, pool in pools.items():
+        if not pool.candidates:
+            raise ValueError(f"Pool '{pool_name}' has no candidates")
+        for candidate in pool.candidates:
+            if candidate.provider not in providers:
+                raise ValueError(
+                    f"Unknown provider '{candidate.provider}' in pool '{pool_name}'"
+                )
 
 
 def _require_text(raw: Mapping[str, Any], key: str, default: str = "") -> str:
@@ -172,8 +220,10 @@ def _require_text(raw: Mapping[str, Any], key: str, default: str = "") -> str:
 def _require_text_list(raw: Mapping[str, Any], key: str) -> list[str]:
     value = raw.get(key, [])
     if value in (None, ""):
-        return []
+        raise ValueError(f"Missing pool config field: {key}")
     if not isinstance(value, list):
         raise ValueError(f"Invalid pool config field: {key}")
     items = [str(item).strip() for item in value if str(item).strip()]
+    if not items:
+        raise ValueError(f"Missing pool config field: {key}")
     return items
