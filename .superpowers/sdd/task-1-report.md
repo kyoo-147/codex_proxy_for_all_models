@@ -129,7 +129,7 @@ Done.
 - `tests/test_server.py`
 
 ### Commit
-- Pending
+- `b83645f` `fix: hide pool bridge upstream details`
 
 ### Concerns
 - Pool-mode bridge still intentionally pins to default `codex-balanced` first candidate until later router work adds live profile selection and fallback routing.
