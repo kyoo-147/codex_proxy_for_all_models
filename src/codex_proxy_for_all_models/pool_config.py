@@ -58,6 +58,13 @@ class PoolConfig:
         visible = self.visible_slugs()
         return visible[0] if visible else "codex-balanced"
 
+    def candidate_by_id(self, candidate_id: str) -> CandidateConfig:
+        for pool in self.pools.values():
+            for candidate in pool.candidates:
+                if f"{candidate.provider}/{candidate.model}" == candidate_id:
+                    return candidate
+        raise KeyError(f"Candidate not found: {candidate_id}")
+
     def default_candidate(self) -> tuple[ProviderConfig, CandidateConfig]:
         profile = self.profiles.get("codex-balanced")
         if profile is None:
