@@ -1,6 +1,7 @@
 # Example Codex config
 
-model = "z-ai/glm-5.2"
+# Point Codex at visible pool slug once proxy runs in pool mode.
+model = "codex-balanced"
 model_provider = "local_model_proxy"
 
 [model_providers.local_model_proxy]

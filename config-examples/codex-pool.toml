@@ -1,0 +1,28 @@
+mode = "pool"
+
+[profiles.codex_balanced]
+visible_slug = "codex-balanced"
+display_name = "Codex Balanced"
+pool_order = ["cheap_free", "coding_fast"]
+
+[providers.nvidia_free]
+base_url = "https://integrate.api.nvidia.com/v1"
+provider_label = "NVIDIA Build"
+api_key_env = "NVIDIA_FREE_KEY"
+
+[providers.nvidia_paid]
+base_url = "https://integrate.api.nvidia.com/v1"
+provider_label = "NVIDIA Build"
+api_key_env = "NVIDIA_PAID_KEY"
+
+[[pools.cheap_free.candidates]]
+provider = "nvidia_free"
+model = "z-ai/glm-5.2"
+api_key_env = "NVIDIA_FREE_KEY"
+capabilities = ["free", "tool_call"]
+
+[[pools.coding_fast.candidates]]
+provider = "nvidia_paid"
+model = "qwen/qwen3-8b"
+api_key_env = "NVIDIA_PAID_KEY"
+capabilities = ["tool_call"]

@@ -4,6 +4,8 @@ import json
 from dataclasses import dataclass
 from typing import Mapping
 
+from .pool_config import PoolConfig, load_pool_config
+
 
 @dataclass(slots=True)
 class ProxyConfig:
@@ -17,6 +19,7 @@ class ProxyConfig:
     extra_headers: dict[str, str] | None = None
     context_window: int = 262144
     max_output_tokens: int = 16384
+    pool_config: PoolConfig | None = None
 
     def __post_init__(self) -> None:
         self.upstream_base_url = self.upstream_base_url.rstrip("/")
@@ -25,6 +28,22 @@ class ProxyConfig:
 
 
 def load_config(env: Mapping[str, str]) -> ProxyConfig:
+    pool_config = load_pool_config(env)
+    if pool_config is not None:
+        return ProxyConfig(
+            upstream_base_url="",
+            upstream_api_key="",
+            upstream_model=pool_config.default_visible_slug(),
+            provider_label="Codex Pool Router",
+            listen_host=env.get("CODEX_PROXY_LISTEN_HOST", "127.0.0.1").strip() or "127.0.0.1",
+            listen_port=int(env.get("CODEX_PROXY_LISTEN_PORT", "8787")),
+            debug_log=env.get("CODEX_PROXY_DEBUG_LOG", "").strip(),
+            extra_headers=_parse_extra_headers(env),
+            context_window=int(env.get("CODEX_PROXY_CONTEXT_WINDOW", "262144")),
+            max_output_tokens=int(env.get("CODEX_PROXY_MAX_OUTPUT_TOKENS", "16384")),
+            pool_config=pool_config,
+        )
+
     base_url = env.get("CODEX_PROXY_UPSTREAM_BASE_URL", "").strip()
     api_key = env.get("CODEX_PROXY_UPSTREAM_API_KEY", "").strip()
     model = env.get("CODEX_PROXY_UPSTREAM_MODEL", "").strip()
@@ -50,3 +69,8 @@ def load_config(env: Mapping[str, str]) -> ProxyConfig:
         context_window=int(env.get("CODEX_PROXY_CONTEXT_WINDOW", "262144")),
         max_output_tokens=int(env.get("CODEX_PROXY_MAX_OUTPUT_TOKENS", "16384")),
     )
+
+
+def _parse_extra_headers(env: Mapping[str, str]) -> dict[str, str]:
+    extra_headers_raw = env.get("CODEX_PROXY_EXTRA_HEADERS", "").strip()
+    return json.loads(extra_headers_raw) if extra_headers_raw else {}
