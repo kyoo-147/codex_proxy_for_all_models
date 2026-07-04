@@ -92,7 +92,7 @@ Done.
 - `tests/test_pool_config.py`
 
 ### Commit
-- `TBD`
+- `795b495` `fix: keep pool mode usable in task 1`
 
 ### Concerns
 - Bridge intentionally routes pool mode through one concrete upstream candidate until later router tasks replace single-upstream request path.
