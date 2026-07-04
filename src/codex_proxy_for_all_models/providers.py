@@ -24,6 +24,12 @@ def _post_chat_completion(base_url, api_key, extra_headers, payload):
     except urllib.error.HTTPError as exc:
         body = exc.read().decode("utf-8", errors="replace")[:500]
         raise RuntimeError(f"Upstream {exc.code}: {body}") from exc
+    except TimeoutError as exc:
+        raise RuntimeError("Upstream timeout") from exc
+    except urllib.error.URLError as exc:
+        raise RuntimeError(f"Upstream network error: {exc.reason}") from exc
+    except json.JSONDecodeError as exc:
+        raise RuntimeError("Upstream returned invalid JSON") from exc
 
 
 def classify_upstream_failure(error: Exception) -> str:

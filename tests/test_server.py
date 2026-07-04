@@ -229,5 +229,65 @@ class PoolModeServerIntegrationTests(unittest.TestCase):
         self.assertEqual(self.upstream_requests[0]["payload"]["model"], "z-ai/glm-5.2")
 
 
+class UpstreamErrorIntegrationTests(unittest.TestCase):
+    def setUp(self):
+        self.upstream_errors = []
+
+        class ErrorFakeHandler(BaseHTTPRequestHandler):
+            def do_POST(self):
+                length = int(self.headers.get("Content-Length", "0"))
+                self.rfile.read(length)
+                body = json.dumps({"error": "test error"}).encode("utf-8")
+                self.send_response(429)
+                self.send_header("Content-Type", "application/json")
+                self.send_header("Content-Length", str(len(body)))
+                self.end_headers()
+                self.wfile.write(body)
+
+            def log_message(self, *args):
+                return
+
+        upstream_port = free_port()
+        self.upstream = HTTPServer(("127.0.0.1", upstream_port), ErrorFakeHandler)
+        self.upstream_thread = threading.Thread(target=self.upstream.serve_forever, daemon=True)
+        self.upstream_thread.start()
+
+        proxy_port = free_port()
+        config = ProxyConfig(
+            upstream_base_url=f"http://127.0.0.1:{upstream_port}/v1",
+            upstream_api_key="secret",
+            upstream_model="qwen/qwen3-8b",
+            provider_label="Ollama",
+            listen_host="127.0.0.1",
+            listen_port=proxy_port,
+        )
+        self.proxy = create_server(config)
+        self.proxy_thread = threading.Thread(target=self.proxy.serve_forever, daemon=True)
+        self.proxy_thread.start()
+        self.base_url = f"http://127.0.0.1:{proxy_port}"
+        time.sleep(0.05)
+
+    def tearDown(self):
+        self.proxy.shutdown()
+        self.proxy.server_close()
+        self.upstream.shutdown()
+        self.upstream.server_close()
+
+    def test_429_returns_rate_limit_json_error(self):
+        req = urllib.request.Request(
+            f"{self.base_url}/v1/responses",
+            data=json.dumps({"input": "hello"}).encode("utf-8"),
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+        try:
+            urllib.request.urlopen(req)
+            self.fail("expected error")
+        except urllib.error.HTTPError as exc:
+            self.assertEqual(exc.code, 429)
+            body = json.loads(exc.read())
+            self.assertEqual(body["error"]["type"], "rate_limit_error")
+
+
 if __name__ == "__main__":
     unittest.main()
