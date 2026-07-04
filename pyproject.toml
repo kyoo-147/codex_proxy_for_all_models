@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "codex-proxy-for-all-models"
-version = "0.1.0"
-description = "Lightweight OpenAI-compatible proxy that lets Codex route Responses API traffic to any chat/completions backend."
+version = "0.2.0"
+description = "Codex-first lightweight model bridge for NVIDIA NIM and other OpenAI-compatible backends."
 readme = "README.md"
 requires-python = ">=3.9"
 license = { text = "MIT" }

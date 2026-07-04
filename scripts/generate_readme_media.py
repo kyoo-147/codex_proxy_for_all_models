@@ -75,8 +75,8 @@ def draw_hero() -> None:
     draw.text((118, 128), "Codex Proxy for All Models", font=TITLE_FONT, fill="#f4f7fb")
     draw.text(
         (120, 208),
-        "Route Codex Responses API traffic to NVIDIA Build, Ollama, LM Studio,\n"
-        "vLLM, SGLang, OpenRouter, DeepSeek, or any OpenAI-compatible backend.",
+        "Codex-first lightweight model bridge for NVIDIA NIM\n"
+        "and other OpenAI-compatible backends.",
         font=SUBTITLE_FONT,
         fill="#b8c4d9",
         spacing=10,
@@ -163,6 +163,25 @@ def draw_demo() -> None:
     )
 
 
+def draw_social_preview(output_path: Path, title: str, subtitle: str) -> None:
+    image = gradient_background((1280, 640))
+    draw = ImageDraw.Draw(image)
+    rounded_panel(draw, (64, 64, 1216, 576), "#0d1529", "#24324f")
+    draw.text((112, 128), title, font=TITLE_FONT, fill="#f4f7fb")
+    draw.text((112, 226), subtitle, font=SUBTITLE_FONT, fill="#b8c4d9", spacing=8)
+    image.save(output_path, optimize=True)
+
+
 if __name__ == "__main__":
     draw_hero()
     draw_demo()
+    draw_social_preview(
+        ASSETS / "social-preview-github.png",
+        "Codex Proxy for All Models",
+        "Codex-first lightweight model bridge\nfor NVIDIA NIM and OpenAI-compatible backends.",
+    )
+    draw_social_preview(
+        ASSETS / "social-preview-og.png",
+        "Codex Pool Router v0.2",
+        "Curated Codex profiles with automatic failover,\nmulti-key rotation, and cooldown.",
+    )

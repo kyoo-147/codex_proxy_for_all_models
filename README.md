@@ -1,16 +1,16 @@
 # Codex Proxy for All Models
 
 [![CI](https://github.com/kyoo-147/codex_proxy_for_all_models/actions/workflows/ci.yml/badge.svg)](https://github.com/kyoo-147/codex_proxy_for_all_models/actions/workflows/ci.yml)
+[![PyPI](https://img.shields.io/pypi/v/codex-proxy-for-all-models.svg)](https://pypi.org/project/codex-proxy-for-all-models/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-[![Python](https://img.shields.io/badge/python-3.9%2B-green.svg)](https://www.python.org/)
 
-Lightweight, vendor-agnostic proxy that lets Codex use OpenAI-compatible chat models through the Responses API.
+**Codex-first lightweight model bridge for NVIDIA NIM and other OpenAI-compatible backends.**
 
 ![Codex Proxy hero](assets/hero.png)
 
 ![Codex Proxy demo](assets/demo.gif)
 
-This project is for people who like the Codex app and Codex CLI workflow, but want to route requests to other models such as:
+This project is for people who like the Codex app and Codex CLI workflow, but want to route requests to other models.
 
 - NVIDIA Build models like `z-ai/glm-5.2`, `moonshotai/kimi-k2.6`, `qwen/qwen3-*`, `deepseek-*`
 - Ollama local models such as `qwen3:8b`, `llama3.1`, `glm4`, `deepseek-r1`
@@ -19,6 +19,33 @@ This project is for people who like the Codex app and Codex CLI workflow, but wa
 - SGLang deployments
 - OpenRouter hosted models
 - DeepSeek or any other provider exposing an OpenAI-compatible `chat/completions` API
+
+## Pool mode (v0.2+)
+
+The proxy can run in **pool mode** with three curated Codex profiles:
+
+| Profile | Display name | Use case |
+|---|---|---|
+| `codex-fast` | Codex Fast | Low-latency coding tasks |
+| `codex-balanced` | Codex Balanced | Default daily work, free-first |
+| `codex-strong` | Codex Strong | Harder multi-file, tool-heavy sessions |
+
+Pool mode adds automatic failover, multi-key rotation, and cooldown.
+
+Enable with a `CODEX_PROXY_CONFIG_PATH` pointing to a TOML pool config:
+
+```toml
+mode = "pool"
+
+[profiles."codex-balanced"]
+visible_slug = "codex-balanced"
+display_name = "Codex Balanced"
+pool_order = ["cheap_free", "coding_fast"]
+```
+
+[Full pool config example](config-examples/codex-pool.toml)
+
+Codex sees only the three curated models. The router handles failover transparently.
 
 ## Why this repo exists
 
@@ -301,9 +328,12 @@ That makes it easy to audit, easy to fork, and easy to run on small local machin
 
 ## Docs
 
+- [Codex setup](docs/codex-setup.md)
+- [NVIDIA pool setups](docs/nvidia-pools.md)
 - [Provider guide](docs/providers.md)
 - [Architecture notes](docs/architecture.md)
 - [Troubleshooting](docs/troubleshooting.md)
+- [Publishing](docs/publishing.md)
 
 ## License
 
