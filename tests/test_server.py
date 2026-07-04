@@ -1,0 +1,143 @@
+import json
+import sys
+import threading
+import time
+import unittest
+import urllib.request
+from http.server import BaseHTTPRequestHandler, HTTPServer
+from pathlib import Path
+
+
+ROOT = Path(__file__).resolve().parents[1]
+SRC = ROOT / "src"
+if str(SRC) not in sys.path:
+    sys.path.insert(0, str(SRC))
+
+
+from codex_proxy_for_all_models.config import ProxyConfig
+from codex_proxy_for_all_models.server import create_server
+
+
+def free_port():
+    temp = HTTPServer(("127.0.0.1", 0), BaseHTTPRequestHandler)
+    port = temp.server_address[1]
+    temp.server_close()
+    return port
+
+
+class FakeUpstreamHandler(BaseHTTPRequestHandler):
+    def do_POST(self):
+        length = int(self.headers.get("Content-Length", "0"))
+        payload = json.loads(self.rfile.read(length).decode("utf-8"))
+        if self.path != "/v1/chat/completions":
+            self.send_response(404)
+            self.end_headers()
+            return
+
+        if payload["messages"][-1]["content"] == "tool":
+            body = {
+                "usage": {"prompt_tokens": 3, "completion_tokens": 2, "total_tokens": 5},
+                "choices": [
+                    {
+                        "finish_reason": "tool_calls",
+                        "message": {
+                            "content": "",
+                            "tool_calls": [
+                                {
+                                    "id": "call_1",
+                                    "function": {"name": "shell_command", "arguments": '{"command":"echo hi"}'},
+                                }
+                            ],
+                        },
+                    }
+                ],
+            }
+        else:
+            body = {
+                "usage": {"prompt_tokens": 4, "completion_tokens": 2, "total_tokens": 6},
+                "choices": [
+                    {
+                        "finish_reason": "stop",
+                        "message": {"role": "assistant", "content": "OK"},
+                    }
+                ],
+            }
+
+        encoded = json.dumps(body).encode("utf-8")
+        self.send_response(200)
+        self.send_header("Content-Type", "application/json")
+        self.send_header("Content-Length", str(len(encoded)))
+        self.end_headers()
+        self.wfile.write(encoded)
+
+    def log_message(self, format, *args):
+        return
+
+
+class ServerIntegrationTests(unittest.TestCase):
+    def setUp(self):
+        upstream_port = free_port()
+        self.upstream = HTTPServer(("127.0.0.1", upstream_port), FakeUpstreamHandler)
+        self.upstream_thread = threading.Thread(target=self.upstream.serve_forever, daemon=True)
+        self.upstream_thread.start()
+
+        proxy_port = free_port()
+        config = ProxyConfig(
+            upstream_base_url=f"http://127.0.0.1:{upstream_port}/v1",
+            upstream_api_key="secret",
+            upstream_model="qwen/qwen3-8b",
+            provider_label="Ollama",
+            listen_host="127.0.0.1",
+            listen_port=proxy_port,
+            debug_log="",
+            extra_headers={},
+            context_window=262144,
+            max_output_tokens=16384,
+        )
+        self.proxy = create_server(config)
+        self.proxy_thread = threading.Thread(target=self.proxy.serve_forever, daemon=True)
+        self.proxy_thread.start()
+        self.base_url = f"http://127.0.0.1:{proxy_port}"
+        time.sleep(0.05)
+
+    def tearDown(self):
+        self.proxy.shutdown()
+        self.proxy.server_close()
+        self.upstream.shutdown()
+        self.upstream.server_close()
+
+    def test_health_and_models(self):
+        health = json.loads(urllib.request.urlopen(f"{self.base_url}/health").read())
+        models = json.loads(urllib.request.urlopen(f"{self.base_url}/v1/models").read())
+
+        self.assertEqual(health["status"], "ok")
+        self.assertEqual(models["models"][0]["slug"], "qwen/qwen3-8b")
+
+    def test_responses_round_trip_text(self):
+        req = urllib.request.Request(
+            f"{self.base_url}/v1/responses",
+            data=json.dumps({"model": "qwen/qwen3-8b", "input": "hello"}).encode("utf-8"),
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+        payload = json.loads(urllib.request.urlopen(req).read())
+
+        self.assertEqual(payload["output"][0]["type"], "message")
+        self.assertEqual(payload["output"][0]["content"][0]["text"], "OK")
+
+    def test_responses_round_trip_tool_call(self):
+        req = urllib.request.Request(
+            f"{self.base_url}/v1/responses",
+            data=json.dumps({"model": "qwen/qwen3-8b", "input": "tool"}).encode("utf-8"),
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+        payload = json.loads(urllib.request.urlopen(req).read())
+
+        self.assertEqual(payload["status"], "in_progress")
+        self.assertEqual(payload["output"][0]["type"], "function_call")
+        self.assertEqual(payload["output"][0]["name"], "shell_command")
+
+
+if __name__ == "__main__":
+    unittest.main()

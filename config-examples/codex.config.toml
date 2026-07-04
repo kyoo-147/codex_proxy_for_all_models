@@ -1,0 +1,10 @@
+# Example Codex config
+
+model = "z-ai/glm-5.2"
+model_provider = "local_model_proxy"
+
+[model_providers.local_model_proxy]
+name = "Local Model Proxy"
+wire_api = "responses"
+base_url = "http://127.0.0.1:8787"
+env_key = "DUMMY_API_KEY"

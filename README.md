@@ -1,179 +1,293 @@
-# Codex + GLM-5.2 Proxy
+# Codex Proxy for All Models
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![Python 3.8+](https://img.shields.io/badge/Python-3.8%2B-green.svg)](https://www.python.org/)
+[![CI](https://github.com/kyoo-147/codex_proxy_for_all_models/actions/workflows/ci.yml/badge.svg)](https://github.com/kyoo-147/codex_proxy_for_all_models/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Python](https://img.shields.io/badge/python-3.9%2B-green.svg)](https://www.python.org/)
 
-> Make **OpenAI Codex CLI** work with **GLM-5.2** — Zhipu AI's SOTA coding model.
-> A lightweight local protocol proxy that translates Codex's Responses API into
-> Zhipu's Chat Completions API. **Zero dependencies — standard library only.**
+Lightweight, vendor-agnostic proxy that lets Codex use OpenAI-compatible chat models through the Responses API.
 
-## Why?
+This project is for people who like the Codex app and Codex CLI workflow, but want to route requests to other models such as:
 
-Codex CLI only supports OpenAI models natively. GLM-5.2 is a 753B-parameter
-open-weights model that beats GPT-5.5 on coding benchmarks at 1/6 the cost.
-This proxy bridges the two, letting you use Codex with GLM-5.2 through Zhipu's API.
+- NVIDIA Build models like `z-ai/glm-5.2`, `moonshotai/kimi-k2.6`, `qwen/qwen3-*`, `deepseek-*`
+- Ollama local models such as `qwen3:8b`, `llama3.1`, `glm4`, `deepseek-r1`
+- LM Studio local servers
+- vLLM deployments
+- SGLang deployments
+- OpenRouter hosted models
+- DeepSeek or any other provider exposing an OpenAI-compatible `chat/completions` API
 
-**Verified working**: Codex successfully creates files, writes code, and executes
-commands through GLM-5.2 via this proxy.
+## Why this repo exists
 
-## Quick Start
+Codex works best with the Responses API. Many non-OpenAI providers expose only `chat/completions`, or expose Responses-incompatible metadata. This proxy sits in the middle:
 
-### 1. Install Codex CLI
-```bash
-npm install -g @openai/codex
-```
+`Codex -> Responses API -> this proxy -> chat/completions upstream`
 
-### 2. Get a Zhipu API Key
-Register at [open.bigmodel.cn](https://open.bigmodel.cn) → API Keys → Create.
+That gives you:
 
-### 3. Clone & Run the Proxy
-```bash
-git clone https://github.com/KevinSHH/codex-glm-proxy.git
-cd codex-glm-proxy
+- Codex app and Codex CLI workflow
+- lightweight local bridge
+- one proxy for many providers
+- freedom to swap upstreams without changing your daily Codex habits
 
-# Linux / macOS
-export GLM_API_KEY=your_key_here
-python glm_proxy.py
+## Key strengths
 
-# Windows (cmd)
-set GLM_API_KEY=your_key_here
-python glm_proxy.py
+- Zero runtime dependencies. Pure Python standard library.
+- Lightweight. One small HTTP process, no framework, no database, no Node.
+- Vendor-agnostic. Switch upstream by changing environment variables, not code.
+- Codex-focused. Returns Codex-friendly `/responses` and `/models` payloads.
+- Cross-platform. Works on Windows, macOS, and Linux.
+- Easy SEO/discovery. Covers Codex + NVIDIA + Ollama + LM Studio + vLLM + SGLang in one place.
 
-# Windows (PowerShell)
-$env:GLM_API_KEY = "your_key_here"
-python glm_proxy.py
-```
+## What it supports
 
-### 4. Configure Codex
-Add to `~/.codex/config.toml`:
-```toml
-model = "glm-5.2"
-model_provider = "glm-proxy"
-
-[model_providers.glm-proxy]
-name = "GLM Proxy"
-wire_api = "responses"
-base_url = "http://127.0.0.1:8787"
-env_key = "DUMMY_API_KEY"
-```
-
-### 5. Start Coding!
-```bash
-codex --yolo exec "Write a FastAPI server with user authentication"
-```
+- `GET /health`
+- `GET /models`
+- `GET /v1/models`
+- `POST /responses`
+- `POST /v1/responses`
+- `POST /chat/completions`
+- `POST /v1/chat/completions`
 
 ## Architecture
 
-```
-┌──────────┐  Responses API   ┌───────────────┐  Chat API   ┌──────────────┐
-│  Codex   │ ───────────────▶ │  glm_proxy.py │ ──────────▶ │  Zhipu AI    │
-│   CLI    │ ◀─────────────── │    :8787      │ ◀────────── │  (GLM-5.2)   │
-└──────────┘  SSE/JSON stream └───────────────┘  JSON resp  └──────────────┘
+```text
+Codex app / CLI
+        |
+        v
+Responses API payload
+        |
+        v
+Codex Proxy for All Models
+        |
+        v
+OpenAI-compatible chat/completions upstream
 ```
 
 The proxy handles:
-- **Protocol translation**: Responses API ↔ Chat Completions
-- **Tool conversion**: Responses format → function-calling format
-- **Thinking control**: Disables GLM-5.2's mandatory CoT (critical for tool calls)
-- **SSE streaming**: Server-Sent Events with `function_call` events
-- **Model metadata**: Full capability info for Codex compatibility
 
-## Auto-Start Wrapper
+- request translation from Responses to chat-completions
+- tool definition translation
+- model catalog payloads for Codex
+- SSE-friendly response shaping
+- light provider metadata for Codex model discovery
 
-Drop one of these scripts in your PATH to automatically start the proxy before Codex:
+## Quick start
 
-**Windows (`codex-glm.bat`):**
-```bat
-@echo off
-REM Start proxy if not already running
-curl -s http://127.0.0.1:8787/health >nul 2>&1
-if errorlevel 1 (
-    echo Starting GLM Proxy...
-    start /B pythonw "%~dp0\glm_proxy.py"
-    timeout /t 3 /nobreak >nul
-)
-codex %*
-```
+### 1. Clone
 
-**Linux/macOS (`codex-glm`):**
 ```bash
-#!/bin/bash
-# Start proxy if not already running
-curl -s http://127.0.0.1:8787/health >/dev/null 2>&1 || {
-    echo "Starting GLM Proxy..."
-    python "$(dirname "$0")/glm_proxy.py" &
-    sleep 2
-}
-exec codex "$@"
+git clone https://github.com/kyoo-147/codex_proxy_for_all_models.git
+cd codex_proxy_for_all_models
 ```
 
-Then use `codex-glm` instead of `codex`:
+### 2. Set upstream variables
+
+Linux/macOS:
+
 ```bash
-codex-glm --yolo exec "Build a React dashboard"
+export CODEX_PROXY_UPSTREAM_BASE_URL="https://integrate.api.nvidia.com/v1"
+export CODEX_PROXY_UPSTREAM_API_KEY="your_key"
+export CODEX_PROXY_UPSTREAM_MODEL="z-ai/glm-5.2"
+export CODEX_PROXY_PROVIDER_LABEL="NVIDIA Build"
 ```
 
-## Key Fixes
+Windows PowerShell:
 
-This proxy includes critical patches discovered through extensive debugging:
+```powershell
+$env:CODEX_PROXY_UPSTREAM_BASE_URL = "https://integrate.api.nvidia.com/v1"
+$env:CODEX_PROXY_UPSTREAM_API_KEY = "your_key"
+$env:CODEX_PROXY_UPSTREAM_MODEL = "z-ai/glm-5.2"
+$env:CODEX_PROXY_PROVIDER_LABEL = "NVIDIA Build"
+```
 
-| Issue | Symptom | Fix |
-|-------|---------|-----|
-| **Forced thinking** | Reasoning consumes all tokens; tool calls never appear | `enable_thinking: False` |
-| **Missing reasoning field** | Codex doesn't send `reasoning` param; fix never triggers | Fallback when `effort` is empty |
-| **SSE without function_call** | Streaming only emits text events; tool calls lost | Added `function_call` event support in SSE stream |
-| **Proxy crash on disconnect** | Codex reports "stream disconnected before completion"; proxy process dead | ThreadingHTTPServer + socket error handling in `_sse_stream` + `handle_one_request` override |
+### 3. Start proxy
 
-### Debug Logging (Optional)
-
-Set `GLM_PROXY_DEBUG` to a file path to enable request/response logging:
 ```bash
-# Windows
-set GLM_PROXY_DEBUG=C:\Users\you\.codex\proxy_debug.log
-python glm_proxy.py
-
-# Linux/macOS
-export GLM_PROXY_DEBUG=/tmp/proxy_debug.log
-python glm_proxy.py
+python -m codex_proxy_for_all_models
 ```
 
-## API Endpoints
+Default listen address:
 
-| Path | Method | Purpose |
-|------|--------|---------|
-| `/health` | GET | Health check (`{"status":"ok","provider":"zhipu"}`) |
-| `/models` | GET | Model list (Codex-compatible format) |
-| `/v1/chat/completions` | POST | Direct Chat Completions proxy |
-| `/responses` | POST | Responses API → Chat API conversion |
-| `/v1/responses` | POST | Same with `/v1/` prefix |
+- `http://127.0.0.1:8787`
 
-## Limitations
+Helper wrappers:
 
-- **Looping**: Codex may loop on simple tasks — this is a Codex/model interaction issue,
-  not a proxy bug. The file IS created correctly.
-- **Coding endpoint**: The `/api/coding/paas/v4` endpoint requires a separate Zhipu
-  subscription plan. This proxy uses the general `/api/paas/v4` endpoint.
-- **Reasoning levels**: When thinking is enabled, GLM-5.2 uses significant tokens for
-  reasoning before outputting content. The proxy disables this by default.
+- `scripts/codex-proxy.sh`
+- `scripts/codex-proxy.bat`
 
-## Changelog
+### 4. Point Codex at the proxy
 
-### v5.2 (Jun 2026)
-- **Crash-resistant**: `ThreadingHTTPServer` + `handle_one_request` override + `_sse_stream` socket error handling
-- Client disconnects mid-stream no longer kill the proxy process
-- Debug logging made optional via `GLM_PROXY_DEBUG` env var
-- Security: removed hardcoded API key placeholder
+Add this to `~/.codex/config.toml`:
 
-### v5.1 (Jun 2026)
-- Initial public release: Responses API → Chat API protocol translation
-- `enable_thinking: False` fix for tool calling
-- SSE streaming with `function_call` event support
+```toml
+model = "z-ai/glm-5.2"
+model_provider = "local_model_proxy"
 
-## Related Projects
+[model_providers.local_model_proxy]
+name = "Local Model Proxy"
+base_url = "http://127.0.0.1:8787"
+wire_api = "responses"
+env_key = "DUMMY_API_KEY"
+```
 
-- [GodeX](https://github.com/Ahoo-Wang/Godex) — Multi-provider Codex proxy (Go/TS)
-- [opencodex](https://github.com/lidge-jun/opencodex) — Universal Codex proxy (TS)
-- [GLM-5.2](https://github.com/zai-org/GLM-5) — Official GLM-5.2 model weights
+Set placeholder key so Codex is satisfied:
+
+Linux/macOS:
+
+```bash
+export DUMMY_API_KEY=dummy
+```
+
+Windows PowerShell:
+
+```powershell
+$env:DUMMY_API_KEY = "dummy"
+```
+
+Then launch Codex:
+
+```bash
+codex
+```
+
+## NVIDIA Build setup
+
+NVIDIA Build exposes many OpenAI-compatible model endpoints. Browse models here:
+
+- [NVIDIA Build model catalog](https://build.nvidia.com/models)
+
+Example:
+
+```bash
+export CODEX_PROXY_UPSTREAM_BASE_URL="https://integrate.api.nvidia.com/v1"
+export CODEX_PROXY_UPSTREAM_API_KEY="your_nvidia_key"
+export CODEX_PROXY_UPSTREAM_MODEL="z-ai/glm-5.2"
+export CODEX_PROXY_PROVIDER_LABEL="NVIDIA Build"
+python -m codex_proxy_for_all_models
+```
+
+Other NVIDIA Build models can often be swapped by changing only:
+
+- `CODEX_PROXY_UPSTREAM_MODEL`
+
+Examples worth trying:
+
+- `z-ai/glm-5.2`
+- `moonshotai/kimi-k2.6`
+- `qwen/qwen3-next-80b-a3b-instruct`
+- `deepseek-ai/deepseek-v4-pro`
+- `deepseek-ai/deepseek-v4-flash`
+
+## Ollama setup
+
+```bash
+export CODEX_PROXY_UPSTREAM_BASE_URL="http://127.0.0.1:11434/v1"
+export CODEX_PROXY_UPSTREAM_API_KEY="ollama"
+export CODEX_PROXY_UPSTREAM_MODEL="qwen3:8b"
+export CODEX_PROXY_PROVIDER_LABEL="Ollama"
+python -m codex_proxy_for_all_models
+```
+
+## LM Studio setup
+
+```bash
+export CODEX_PROXY_UPSTREAM_BASE_URL="http://127.0.0.1:1234/v1"
+export CODEX_PROXY_UPSTREAM_API_KEY="lmstudio"
+export CODEX_PROXY_UPSTREAM_MODEL="local-model"
+export CODEX_PROXY_PROVIDER_LABEL="LM Studio"
+python -m codex_proxy_for_all_models
+```
+
+## vLLM setup
+
+```bash
+export CODEX_PROXY_UPSTREAM_BASE_URL="http://127.0.0.1:8000/v1"
+export CODEX_PROXY_UPSTREAM_API_KEY="token"
+export CODEX_PROXY_UPSTREAM_MODEL="Qwen/Qwen3-32B"
+export CODEX_PROXY_PROVIDER_LABEL="vLLM"
+python -m codex_proxy_for_all_models
+```
+
+## SGLang setup
+
+```bash
+export CODEX_PROXY_UPSTREAM_BASE_URL="http://127.0.0.1:30000/v1"
+export CODEX_PROXY_UPSTREAM_API_KEY="token"
+export CODEX_PROXY_UPSTREAM_MODEL="deepseek-ai/DeepSeek-V3"
+export CODEX_PROXY_PROVIDER_LABEL="SGLang"
+python -m codex_proxy_for_all_models
+```
+
+## OpenRouter setup
+
+```bash
+export CODEX_PROXY_UPSTREAM_BASE_URL="https://openrouter.ai/api/v1"
+export CODEX_PROXY_UPSTREAM_API_KEY="your_openrouter_key"
+export CODEX_PROXY_UPSTREAM_MODEL="z-ai/glm-5.2"
+export CODEX_PROXY_PROVIDER_LABEL="OpenRouter"
+export CODEX_PROXY_EXTRA_HEADERS='{"HTTP-Referer":"https://github.com/kyoo-147/codex_proxy_for_all_models","X-Title":"Codex Proxy for All Models"}'
+python -m codex_proxy_for_all_models
+```
+
+## Repository layout
+
+```text
+.
+|- .github/workflows/ci.yml
+|- config-examples/
+|- docs/
+|- scripts/
+|- src/codex_proxy_for_all_models/
+|- tests/
+|- codex_proxy_for_all_models.py
+|- glm_proxy.py
+|- pyproject.toml
+`- README.md
+```
+
+## Tests
+
+Run:
+
+```bash
+python -m unittest discover -s tests -v
+```
+
+Current coverage in this repo verifies:
+
+- config loading
+- request mapping
+- response mapping
+- local fake-upstream integration
+- `/health`, `/models`, `/responses`
+
+## Lightweight by design
+
+Compared with heavier proxy stacks, this repo stays small on purpose:
+
+- no FastAPI
+- no Flask
+- no uvicorn
+- no pydantic
+- no Node
+- no database
+- no container required
+
+That makes it easy to audit, easy to fork, and easy to run on small local machines.
+
+## Known limitations
+
+- Upstream rate limits still apply. Proxy cannot fix `429`.
+- Some providers expose incomplete tool-calling behavior.
+- Some providers stream differently; text mode is more reliable than long tool-heavy sessions on weak upstreams.
+- Codex app UI may show `Custom` instead of your exact upstream name. That is a Codex UI behavior, not always a proxy bug.
+
+## Docs
+
+- [Provider guide](docs/providers.md)
+- [Architecture notes](docs/architecture.md)
+- [Troubleshooting](docs/troubleshooting.md)
 
 ## License
 
-MIT © 2026
+MIT
