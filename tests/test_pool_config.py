@@ -234,6 +234,94 @@ capabilities = ["free"]
         ):
             load_pool_config({"CODEX_PROXY_CONFIG_PATH": path, "NVIDIA_FREE_KEY": "token-1"})
 
+    def test_curated_profile_set_must_be_exact(self):
+        path = self.write_toml(
+            """
+mode = "pool"
+
+[profiles.codex-fast]
+visible_slug = "codex-fast"
+display_name = "Codex Fast"
+pool_order = ["cheap_free"]
+
+[profiles.codex-balanced]
+visible_slug = "codex-balanced"
+display_name = "Codex Balanced"
+pool_order = ["cheap_free"]
+
+[profiles.codex-strong]
+visible_slug = "codex-strong"
+display_name = "Codex Strong"
+pool_order = ["cheap_free"]
+
+[profiles.codex-extra]
+visible_slug = "codex-extra"
+display_name = "Codex Extra"
+pool_order = ["cheap_free"]
+
+[providers.nvidia_free]
+base_url = "https://integrate.api.nvidia.com/v1"
+provider_label = "NVIDIA Build"
+api_key_env = "NVIDIA_FREE_KEY"
+
+[[pools.cheap_free.candidates]]
+provider = "nvidia_free"
+model = "z-ai/glm-5.2"
+api_key_env = "NVIDIA_FREE_KEY"
+capabilities = ["free"]
+"""
+        )
+
+        with self.assertRaisesRegex(
+            ValueError,
+            "Curated profiles must be exactly: codex-fast, codex-balanced, codex-strong",
+        ):
+            load_pool_config({"CODEX_PROXY_CONFIG_PATH": path, "NVIDIA_FREE_KEY": "token-1"})
+
+    def test_unused_provider_env_is_not_required(self):
+        path = self.write_toml(
+            """
+mode = "pool"
+
+[profiles.codex-fast]
+visible_slug = "codex-fast"
+display_name = "Codex Fast"
+pool_order = ["cheap_free"]
+
+[profiles.codex-balanced]
+visible_slug = "codex-balanced"
+display_name = "Codex Balanced"
+pool_order = ["cheap_free"]
+
+[profiles.codex-strong]
+visible_slug = "codex-strong"
+display_name = "Codex Strong"
+pool_order = ["cheap_free"]
+
+[providers.nvidia_free]
+base_url = "https://integrate.api.nvidia.com/v1"
+provider_label = "NVIDIA Build"
+api_key_env = "NVIDIA_FREE_KEY"
+
+[providers.nvidia_paid]
+base_url = "https://integrate.api.nvidia.com/v1"
+provider_label = "NVIDIA Build"
+api_key_env = "NVIDIA_PAID_KEY"
+
+[[pools.cheap_free.candidates]]
+provider = "nvidia_free"
+model = "z-ai/glm-5.2"
+api_key_env = "NVIDIA_FREE_KEY"
+capabilities = ["free"]
+"""
+        )
+
+        config = load_pool_config({"CODEX_PROXY_CONFIG_PATH": path, "NVIDIA_FREE_KEY": "token-1"})
+
+        self.assertIsNotNone(config)
+        self.assertEqual(config.providers["nvidia_free"].api_key, "token-1")
+        self.assertEqual(config.providers["nvidia_paid"].api_key, "")
+
     def test_missing_pools_table_raises(self):
         path = self.write_toml(
             """
@@ -309,7 +397,18 @@ capabilities = ["free"]
             ["codex-fast", "codex-balanced", "codex-strong"],
         )
 
-    def test_pool_mode_defaults_codex_to_balanced_profile(self):
+    def test_pool_mode_defaults_to_balanced_profile_slug(self):
+        env = {
+            "CODEX_PROXY_CONFIG_PATH": str(ROOT / "config-examples" / "codex-pool.toml"),
+            "NVIDIA_FREE_KEY": "token-1",
+            "NVIDIA_PAID_KEY": "token-2",
+        }
+
+        config = load_pool_config(env)
+
+        self.assertEqual(config.default_visible_slug(), "codex-balanced")
+
+    def test_pool_mode_derives_single_upstream_bridge_from_default_profile(self):
         env = {
             "CODEX_PROXY_CONFIG_PATH": str(ROOT / "config-examples" / "codex-pool.toml"),
             "NVIDIA_FREE_KEY": "token-1",
@@ -318,7 +417,10 @@ capabilities = ["free"]
 
         config = load_config(env)
 
-        self.assertEqual(config.upstream_model, "codex-balanced")
+        self.assertEqual(config.upstream_base_url, "https://integrate.api.nvidia.com/v1")
+        self.assertEqual(config.upstream_api_key, "token-1")
+        self.assertEqual(config.upstream_model, "z-ai/glm-5.2")
+        self.assertEqual(config.provider_label, "Codex Pool Router")
 
     def test_pool_mode_cli_prints_listen_and_profile_summary(self):
         pool_path = self.write_toml(
@@ -384,7 +486,7 @@ capabilities = ["tool_call"]
         self.assertIn("[proxy] mode=pool", output)
         self.assertIn("Listen: http://127.0.0.1:8787", output)
         self.assertIn("Profiles: codex-fast, codex-balanced, codex-strong", output)
-        self.assertIn("Default model: codex-balanced", output)
+        self.assertIn("Default model: z-ai/glm-5.2", output)
 
 
 if __name__ == "__main__":

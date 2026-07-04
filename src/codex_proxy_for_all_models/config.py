@@ -30,10 +30,11 @@ class ProxyConfig:
 def load_config(env: Mapping[str, str]) -> ProxyConfig:
     pool_config = load_pool_config(env)
     if pool_config is not None:
+        default_provider, default_candidate = pool_config.default_candidate()
         return ProxyConfig(
-            upstream_base_url="",
-            upstream_api_key="",
-            upstream_model=pool_config.default_visible_slug(),
+            upstream_base_url=default_provider.base_url,
+            upstream_api_key=default_provider.api_key,
+            upstream_model=default_candidate.model,
             provider_label="Codex Pool Router",
             listen_host=env.get("CODEX_PROXY_LISTEN_HOST", "127.0.0.1").strip() or "127.0.0.1",
             listen_port=int(env.get("CODEX_PROXY_LISTEN_PORT", "8787")),

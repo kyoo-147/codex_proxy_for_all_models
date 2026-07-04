@@ -58,6 +58,22 @@ class PoolConfig:
         visible = self.visible_slugs()
         return visible[0] if visible else "codex-balanced"
 
+    def default_candidate(self) -> tuple[ProviderConfig, CandidateConfig]:
+        profile = self.profiles.get("codex-balanced")
+        if profile is None:
+            if not self.profiles:
+                raise ValueError("Pool config missing profiles")
+            profile = next(iter(self.profiles.values()))
+        for pool_name in profile.pool_order:
+            pool = self.pools.get(pool_name)
+            if pool is None:
+                continue
+            for candidate in pool.candidates:
+                provider = self.providers.get(candidate.provider)
+                if provider is not None:
+                    return provider, candidate
+        raise ValueError("Pool config has no usable candidate for default profile")
+
 
 def load_pool_config(env: Mapping[str, str]) -> PoolConfig | None:
     path = env.get("CODEX_PROXY_CONFIG_PATH", "").strip()
@@ -150,9 +166,11 @@ def _parse_providers(
     if not isinstance(raw, dict):
         raise ValueError("Invalid pool config: providers must be table")
 
+    referenced_providers: set[str] = set()
     provider_api_keys: dict[str, str] = {}
     for pool in pools.values():
         for candidate in pool.candidates:
+            referenced_providers.add(candidate.provider)
             provider_api_keys.setdefault(candidate.provider, candidate.api_key_env)
 
     providers: dict[str, ProviderConfig] = {}
@@ -161,7 +179,7 @@ def _parse_providers(
             raise ValueError(f"Invalid provider: {name}")
         api_key_env = _require_text(item, "api_key_env", default=provider_api_keys.get(name, ""))
         api_key = env.get(api_key_env, "").strip()
-        if not api_key:
+        if name in referenced_providers and not api_key:
             raise ValueError(f"Missing env var: {api_key_env}")
         providers[name] = ProviderConfig(
             name=name,
@@ -179,6 +197,11 @@ def _validate_curated_profiles(profiles: Mapping[str, ProfileConfig]) -> None:
     missing = [name for name in REQUIRED_CURATED_PROFILES if name not in profiles]
     if missing:
         raise ValueError(f"Missing curated profiles: {', '.join(missing)}")
+    extra = [name for name in profiles if name not in REQUIRED_CURATED_PROFILES]
+    if extra or len(profiles) != len(REQUIRED_CURATED_PROFILES):
+        raise ValueError(
+            "Curated profiles must be exactly: codex-fast, codex-balanced, codex-strong"
+        )
 
 
 def _validate_profile_pool_order(

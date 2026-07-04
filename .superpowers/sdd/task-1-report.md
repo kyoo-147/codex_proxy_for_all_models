@@ -63,3 +63,36 @@ Done.
 
 ### Concerns
 - Validation now enforces curated Codex profile presence for pool mode. Intentional per review, but future non-Codex pool variants would need explicit contract change.
+
+---
+
+## Task 1 Second Fix Pass
+
+### Status
+Done.
+
+### Review Findings Addressed
+- Added lightweight pool-mode bridge in `load_config()` so current single-upstream server path receives usable `upstream_base_url`, `upstream_api_key`, and `upstream_model` from first candidate in default `codex-balanced` profile.
+- Tightened curated profile validation to require exact set `codex-fast`, `codex-balanced`, `codex-strong`.
+- Limited provider env validation to providers actually referenced by pool candidates, leaving unused provider tables optional at Task 1 stage.
+- Extended tests for exact curated set, default-profile bridge behavior, and unused-provider env tolerance.
+
+### Root Cause
+- Pool config loader already populated structured TOML state, but Task 1 server path still consumed only flat single-upstream fields. Pool mode returned blank values there, so requests would fail before later router work landed.
+- Provider parsing validated every declared provider env eagerly, even when no candidate referenced that provider.
+- Curated-profile validation checked only missing required names, not extra names.
+
+### Verification
+- `python -m unittest tests.test_pool_config tests.test_config tests.test_server tests.test_protocol -v`
+- Result: 24 tests passed.
+
+### Files Changed
+- `src/codex_proxy_for_all_models/config.py`
+- `src/codex_proxy_for_all_models/pool_config.py`
+- `tests/test_pool_config.py`
+
+### Commit
+- `TBD`
+
+### Concerns
+- Bridge intentionally routes pool mode through one concrete upstream candidate until later router tasks replace single-upstream request path.
