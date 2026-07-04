@@ -6,6 +6,10 @@
 
 Lightweight, vendor-agnostic proxy that lets Codex use OpenAI-compatible chat models through the Responses API.
 
+![Codex Proxy hero](assets/hero.png)
+
+![Codex Proxy demo](assets/demo.gif)
+
 This project is for people who like the Codex app and Codex CLI workflow, but want to route requests to other models such as:
 
 - NVIDIA Build models like `z-ai/glm-5.2`, `moonshotai/kimi-k2.6`, `qwen/qwen3-*`, `deepseek-*`
@@ -70,6 +74,12 @@ The proxy handles:
 - model catalog payloads for Codex
 - SSE-friendly response shaping
 - light provider metadata for Codex model discovery
+
+## Quick demo
+
+1. Point Codex at `http://127.0.0.1:8787` with `wire_api = "responses"`.
+2. Start proxy with env vars for any OpenAI-compatible `chat/completions` backend.
+3. Keep Codex UX while switching backend models freely.
 
 ## Quick start
 
@@ -234,6 +244,7 @@ python -m codex_proxy_for_all_models
 ```text
 .
 |- .github/workflows/ci.yml
+|- assets/
 |- config-examples/
 |- docs/
 |- scripts/
@@ -260,6 +271,12 @@ Current coverage in this repo verifies:
 - response mapping
 - local fake-upstream integration
 - `/health`, `/models`, `/responses`
+
+README media can be regenerated with:
+
+```bash
+python scripts/generate_readme_media.py
+```
 
 ## Lightweight by design
 

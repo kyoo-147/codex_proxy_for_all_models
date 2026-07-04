@@ -5,12 +5,12 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "codex-proxy-for-all-models"
 version = "0.1.0"
-description = "Lightweight vendor-agnostic Codex Responses proxy for OpenAI-compatible chat models."
+description = "Lightweight OpenAI-compatible proxy that lets Codex route Responses API traffic to any chat/completions backend."
 readme = "README.md"
 requires-python = ">=3.9"
 license = { text = "MIT" }
 authors = [{ name = "kyoo-147" }]
-keywords = ["codex", "proxy", "glm", "nvidia", "ollama", "deepseek", "openrouter"]
+keywords = ["codex", "proxy", "nvidia", "ollama", "lm-studio", "vllm", "sglang", "deepseek", "openrouter"]
 classifiers = [
   "License :: OSI Approved :: MIT License",
   "Programming Language :: Python :: 3",
