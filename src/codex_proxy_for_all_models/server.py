@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 import ssl
 import traceback
 from http.server import BaseHTTPRequestHandler, HTTPServer
@@ -16,7 +17,8 @@ class ThreadingHTTPServer(ThreadingMixIn, HTTPServer):
 
 
 def create_server(config: ProxyConfig) -> ThreadingHTTPServer:
-    ssl._create_default_https_context = ssl._create_unverified_context
+    if os.environ.get("CODEX_PROXY_INSECURE_SSL", "").strip().lower() in ("1", "true", "yes"):
+        ssl._create_default_https_context = ssl._create_unverified_context
 
     class ProxyHandler(BaseHTTPRequestHandler):
         def handle_one_request(self):
@@ -55,31 +57,49 @@ def create_server(config: ProxyConfig) -> ThreadingHTTPServer:
             length = int(self.headers.get("Content-Length", "0"))
             raw = self.rfile.read(length)
 
-            if path in {"/responses", "/v1/responses"}:
-                request = json.loads(raw.decode("utf-8"))
-                reasoning_effort = extract_reasoning_effort(request)
-                requested_model = request.get("model")
-                upstream_request = responses_to_chat_request(request, config.bridge_upstream_model)
-                from .providers import call_upstream
+            try:
+                if path in {"/responses", "/v1/responses"}:
+                    request = json.loads(raw.decode("utf-8"))
+                    reasoning_effort = extract_reasoning_effort(request)
+                    requested_model = request.get("model")
+                    upstream_request = responses_to_chat_request(request, config.bridge_upstream_model)
+                    from .providers import call_upstream
 
-                upstream_response = call_upstream(config, upstream_request, requested_model, reasoning_effort)
-                payload = upstream_to_responses_payload(upstream_response, config.upstream_model)
-                self._json(200, payload)
-                return
+                    upstream_response = call_upstream(config, upstream_request, requested_model, reasoning_effort)
+                    payload = upstream_to_responses_payload(upstream_response, config.upstream_model)
+                    self._json(200, payload)
+                    return
 
-            if path in {"/chat/completions", "/v1/chat/completions"}:
-                request = json.loads(raw.decode("utf-8"))
-                reasoning_effort = extract_reasoning_effort(request)
-                requested_model = request.get("model")
-                request["model"] = config.bridge_upstream_model
-                from .providers import call_upstream
+                if path in {"/chat/completions", "/v1/chat/completions"}:
+                    request = json.loads(raw.decode("utf-8"))
+                    reasoning_effort = extract_reasoning_effort(request)
+                    requested_model = request.get("model")
+                    request["model"] = config.bridge_upstream_model
+                    from .providers import call_upstream
 
-                upstream_response = call_upstream(config, request, requested_model, reasoning_effort)
-                self._json(200, upstream_response)
-                return
+                    upstream_response = call_upstream(config, request, requested_model, reasoning_effort)
+                    self._json(200, upstream_response)
+                    return
 
-            self.send_response(404)
-            self.end_headers()
+                self.send_response(404)
+                self.end_headers()
+            except json.JSONDecodeError:
+                self._json(400, {"error": {"message": "Invalid JSON body", "type": "invalid_request_error"}})
+            except RuntimeError as exc:
+                msg = str(exc)
+                if "429" in msg:
+                    self._json(429, {"error": {"message": msg, "type": "rate_limit_error"}})
+                elif msg.startswith("Upstream 5"):
+                    self._json(502, {"error": {"message": msg, "type": "upstream_error"}})
+                elif "401" in msg or "403" in msg:
+                    self._json(401, {"error": {"message": msg, "type": "authentication_error"}})
+                elif "404" in msg:
+                    self._json(404, {"error": {"message": msg, "type": "not_found_error"}})
+                else:
+                    self._json(502, {"error": {"message": msg, "type": "upstream_error"}})
+            except Exception:
+                traceback.print_exc()
+                self._json(500, {"error": {"message": "Internal server error", "type": "server_error"}})
 
         def _json(self, status_code: int, payload: dict):
             encoded = json.dumps(payload).encode("utf-8")

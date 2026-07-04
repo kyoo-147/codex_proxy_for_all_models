@@ -4,6 +4,66 @@ import time
 import uuid
 
 
+def _append_input_item(messages: list, item: dict) -> None:
+    """Append a single Responses API input item to the chat messages list."""
+    item_type = item.get("type", "")
+
+    if item_type == "input_text":
+        text = (item.get("text") or "").strip()
+        if text:
+            messages.append({"role": "user", "content": text})
+        return
+
+    if item_type == "message":
+        role = item.get("role", "assistant")
+        content_blocks = item.get("content", [])
+        if isinstance(content_blocks, list):
+            texts = [b.get("text", "") for b in content_blocks if b.get("type") == "output_text"]
+            content = " ".join(t for t in texts if t)
+        else:
+            content = str(content_blocks) if content_blocks else ""
+        if content:
+            messages.append({"role": role, "content": content})
+        return
+
+    if item_type == "function_call":
+        messages.append({
+            "role": "assistant",
+            "content": "",
+            "tool_calls": [{
+                "id": item.get("call_id", item.get("id", "")),
+                "type": "function",
+                "function": {
+                    "name": item.get("name", ""),
+                    "arguments": item.get("arguments", "{}"),
+                },
+            }],
+        })
+        return
+
+    if item_type == "function_call_output":
+        call_id = item.get("call_id", "")
+        output = item.get("output", "")
+        messages.append({
+            "role": "tool",
+            "tool_call_id": call_id,
+            "content": output,
+        })
+        return
+
+    # Legacy Messages API items (role + content, no type field)
+    role = item.get("role", "user")
+    content = item.get("content", "")
+    if isinstance(content, list):
+        text_parts = []
+        for part in content:
+            if part.get("type") in {"input_text", "output_text", "text"} and part.get("text"):
+                text_parts.append(part["text"])
+        content = " ".join(text_parts)
+    if content:
+        messages.append({"role": role, "content": content})
+
+
 def responses_to_chat_request(request: dict, upstream_model: str) -> dict:
     messages = []
     instructions = request.get("instructions", "")
@@ -15,16 +75,7 @@ def responses_to_chat_request(request: dict, upstream_model: str) -> dict:
         messages.append({"role": "user", "content": raw_input})
     elif isinstance(raw_input, list):
         for item in raw_input:
-            role = item.get("role", "user")
-            content = item.get("content", "")
-            if isinstance(content, list):
-                text_parts = []
-                for part in content:
-                    if part.get("type") in {"input_text", "output_text", "text"} and part.get("text"):
-                        text_parts.append(part["text"])
-                content = " ".join(text_parts)
-            if content:
-                messages.append({"role": role, "content": content})
+            _append_input_item(messages, item)
 
     chat_request = {
         "model": upstream_model,

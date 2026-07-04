@@ -99,8 +99,9 @@ The proxy handles:
 - request translation from Responses to chat-completions
 - tool definition translation
 - model catalog payloads for Codex
-- SSE-friendly response shaping
 - light provider metadata for Codex model discovery
+
+> **Note:** This proxy is non-streaming only. All requests are proxied as blocking HTTP calls.
 
 ## Quick demo
 
