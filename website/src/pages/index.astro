@@ -25,11 +25,14 @@ import Layout from '../layouts/Layout.astro';
     <!-- Hero Section -->
     <section class="pt-24 pb-16 px-6 max-w-7xl mx-auto">
       <div class="flex flex-col items-center text-center space-y-6 max-w-3xl mx-auto mb-16">
+        <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-100 border border-slate-200 text-xs font-medium text-slate-700">
+          v0.3 · MIT Licensed
+        </div>
         <h1 class="text-5xl md:text-6xl font-bold tracking-tight text-slate-900 leading-tight">
-          One IDE. <br/><span class="text-slate-500">Infinite Models.</span>
+          One IDE. <br/><span class="text-slate-500">Any Model.</span>
         </h1>
-        <p class="text-lg text-slate-600 max-w-xl">
-          The lightweight bridge between your Codex IDE and any OpenAI-compatible backend. Zero dependencies, pure Python.
+        <p class="text-lg text-slate-600 max-w-2xl">
+          A lightweight bridge between Codex and any OpenAI-compatible backend. Pure Python, zero dependencies, instant setup.
         </p>
         <div class="flex gap-4 pt-4">
           <a href="#quick-start" class="px-5 py-2.5 bg-slate-900 text-white text-sm font-medium rounded-lg shadow-sm hover:bg-slate-800 transition-colors">
@@ -93,7 +96,7 @@ import Layout from '../layouts/Layout.astro';
         <div class="flex flex-col col-span-1 md:col-span-3 row-span-2 bg-white border border-slate-200 rounded-2xl p-4 md:p-6 shadow-sm justify-between order-4 md:order-4">
           <div>
             <h3 class="text-sm font-semibold text-slate-900 mb-1">Local & Remote</h3>
-            <p class="text-xs md:text-sm text-slate-500">Run local Ollama models or remote APIs effortlessly.</p>
+            <p class="text-xs md:text-sm text-slate-500">Run Ollama locally or tap remote APIs. No lock-in.</p>
           </div>
           <div class="grid grid-cols-2 gap-2 mt-3 md:mt-4">
              <div class="bg-slate-50 border border-slate-100 rounded-lg p-2 text-center text-xs font-medium text-slate-600">vLLM</div>
@@ -107,7 +110,7 @@ import Layout from '../layouts/Layout.astro';
         <div class="flex flex-col col-span-1 md:col-span-3 row-span-2 bg-white border border-slate-200 rounded-2xl p-4 md:p-6 shadow-sm justify-between order-5 md:order-5">
            <div>
             <h3 class="text-sm font-semibold text-slate-900 mb-1">Pool Mode</h3>
-            <p class="text-xs md:text-sm text-slate-500">Curated fallback profiles for daily work.</p>
+            <p class="text-xs md:text-sm text-slate-500">Auto-failover across your model pool.</p>
           </div>
            <div class="mt-3 md:mt-4 space-y-2">
             <div class="flex items-center justify-between text-xs p-2 bg-slate-50 rounded border border-slate-100">
@@ -127,46 +130,70 @@ import Layout from '../layouts/Layout.astro';
       </div>
     </section>
 
+    <!-- Architecture Value Strip -->
+    <section class="py-20 bg-white border-y border-slate-200">
+      <div class="max-w-7xl mx-auto px-6 grid grid-cols-1 md:grid-cols-3 gap-12 md:gap-8">
+        <div class="text-center md:text-left">
+          <h3 class="text-sm font-semibold text-slate-900 mb-3">Lightweight by design</h3>
+          <p class="text-sm text-slate-500 leading-relaxed">
+            Zero runtime dependencies. Pure Python standard library — no FastAPI, no Flask, no Node, no database.
+          </p>
+        </div>
+        <div class="text-center md:text-left">
+          <h3 class="text-sm font-semibold text-slate-900 mb-3">Codex-first</h3>
+          <p class="text-sm text-slate-500 leading-relaxed">
+            Translates Responses API to chat/completions transparently. Codex sees your backend as a first-class model.
+          </p>
+        </div>
+        <div class="text-center md:text-left">
+          <h3 class="text-sm font-semibold text-slate-900 mb-3">Vendor-neutral</h3>
+          <p class="text-sm text-slate-500 leading-relaxed">
+            Switch from Ollama to NVIDIA to OpenRouter by changing an env var. No config changes, no redeploys.
+          </p>
+        </div>
+      </div>
+    </section>
+
     <!-- Providers Section -->
-    <section id="providers" class="py-24 bg-white border-y border-slate-200">
+    <section id="providers" class="py-24 bg-[#fafafa] border-y border-slate-200">
       <div class="max-w-7xl mx-auto px-6">
-        <div class="mb-12">
+        <div class="mb-12 text-center md:text-left">
           <h2 class="text-3xl font-bold tracking-tight text-slate-900 mb-4">Supported Providers</h2>
           <p class="text-slate-600 max-w-2xl text-lg">
-            Swap upstreams without changing your daily Codex habits. Any provider exposing an OpenAI-compatible <code>chat/completions</code> endpoint is supported.
+            Any OpenAI-compatible <code>chat/completions</code> endpoint works. Swap upstreams without changing your Codex habits.
           </p>
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div class="group border border-slate-200 rounded-2xl p-6 hover:border-slate-300 transition-colors bg-[#fafafa]">
+          <div class="group border border-slate-200 rounded-2xl p-6 hover:border-slate-300 transition-colors bg-white">
             <div class="h-12 w-12 rounded-xl bg-white border border-slate-200 flex items-center justify-center mb-6 shadow-sm">
               <svg class="w-6 h-6 text-slate-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
             </div>
             <h3 class="text-lg font-semibold text-slate-900 mb-2">Local Servers</h3>
-            <p class="text-sm text-slate-600">Seamless integration with Ollama, LM Studio, vLLM, and SGLang. Run heavy code models entirely locally.</p>
+            <p class="text-sm text-slate-600">Ollama, LM Studio, vLLM, SGLang — run models entirely on your machine with no external dependencies.</p>
           </div>
 
-          <div class="group border border-slate-200 rounded-2xl p-6 hover:border-slate-300 transition-colors bg-[#fafafa]">
+          <div class="group border border-slate-200 rounded-2xl p-6 hover:border-slate-300 transition-colors bg-white">
             <div class="h-12 w-12 rounded-xl bg-white border border-slate-200 flex items-center justify-center mb-6 shadow-sm">
               <svg class="w-6 h-6 text-slate-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
             </div>
             <h3 class="text-lg font-semibold text-slate-900 mb-2">NVIDIA Build</h3>
-            <p class="text-sm text-slate-600">Access blazing fast endpoints like <code>z-ai/glm-5.2</code> and <code>qwen/qwen3-*</code> via integrate.api.nvidia.com.</p>
+            <p class="text-sm text-slate-600">Blazing fast endpoints like <code>z-ai/glm-5.2</code> and <code>qwen/qwen3-*</code> via <code>integrate.api.nvidia.com</code>.</p>
           </div>
 
-          <div class="group border border-slate-200 rounded-2xl p-6 hover:border-slate-300 transition-colors bg-[#fafafa]">
+          <div class="group border border-slate-200 rounded-2xl p-6 hover:border-slate-300 transition-colors bg-white">
             <div class="h-12 w-12 rounded-xl bg-white border border-slate-200 flex items-center justify-center mb-6 shadow-sm">
               <svg class="w-6 h-6 text-slate-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"></path></svg>
             </div>
-            <h3 class="text-lg font-semibold text-slate-900 mb-2">OpenRouter & Cloud</h3>
-            <p class="text-sm text-slate-600">Route requests to DeepSeek, OpenRouter, or any provider that handles <code>chat/completions</code> APIs.</p>
+            <h3 class="text-lg font-semibold text-slate-900 mb-2">Cloud & Hosted</h3>
+            <p class="text-sm text-slate-600">DeepSeek, OpenRouter, or any provider exposing a standard <code>chat/completions</code> API.</p>
           </div>
         </div>
       </div>
     </section>
 
     <!-- Pool Mode Section -->
-    <section id="pool-mode" class="py-24 bg-[#fafafa]">
+    <section id="pool-mode" class="py-24 bg-white">
       <div class="max-w-7xl mx-auto px-6 grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
         <div>
           <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-100 border border-slate-200 text-xs font-medium text-slate-700 mb-6">
@@ -174,28 +201,28 @@ import Layout from '../layouts/Layout.astro';
           </div>
           <h2 class="text-3xl font-bold tracking-tight text-slate-900 mb-4">Enterprise-grade Pool Mode</h2>
           <p class="text-lg text-slate-600 mb-8">
-            Stop worrying about rate limits. Pool mode adds automatic failover, multi-key rotation, and request cooldowns. Codex sees only three curated models, while the proxy handles the complexity.
+            Automatic failover, multi-key rotation, and request cooldown. Codex sees three curated models. The proxy handles the complexity.
           </p>
           <ul class="space-y-4">
             <li class="flex items-start gap-3">
-              <svg class="w-5 h-5 text-slate-400 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+              <svg class="w-5 h-5 text-slate-400 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
               <div>
                 <span class="font-medium text-slate-900 block">Automatic Failover</span>
-                <span class="text-sm text-slate-500">Seamlessly falls back to secondary models if primary fails.</span>
+                <span class="text-sm text-slate-500">Falls back to the next model if the primary is down or rate-limited.</span>
               </div>
             </li>
             <li class="flex items-start gap-3">
-              <svg class="w-5 h-5 text-slate-400 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+              <svg class="w-5 h-5 text-slate-400 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
               <div>
                 <span class="font-medium text-slate-900 block">Multi-key Rotation</span>
-                <span class="text-sm text-slate-500">Distribute load across multiple API keys automatically.</span>
+                <span class="text-sm text-slate-500">Distributes load across API keys to stay within rate limits.</span>
               </div>
             </li>
             <li class="flex items-start gap-3">
-              <svg class="w-5 h-5 text-slate-400 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+              <svg class="w-5 h-5 text-slate-400 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
               <div>
                 <span class="font-medium text-slate-900 block">Curated Codex Profiles</span>
-                <span class="text-sm text-slate-500">Maps your diverse backend models to <code>codex-fast</code>, <code>codex-balanced</code>, and <code>codex-strong</code>.</span>
+                <span class="text-sm text-slate-500">Maps any backend to <code>codex-fast</code>, <code>codex-balanced</code>, or <code>codex-strong</code>.</span>
               </div>
             </li>
           </ul>
@@ -221,38 +248,39 @@ pool_order = [<span class="text-green-400">"cheap_free"</span>, <span class="tex
     </section>
 
     <!-- Quick Start Section -->
-    <section id="quick-start" class="py-24 bg-white border-t border-slate-200">
+    <section id="quick-start" class="py-24 bg-[#fafafa] border-y border-slate-200">
       <div class="max-w-4xl mx-auto px-6">
         <div class="text-center mb-12">
           <h2 class="text-3xl font-bold tracking-tight text-slate-900 mb-4">Quick Start</h2>
-          <p class="text-lg text-slate-600">Get up and running with a single process.</p>
+          <p class="text-lg text-slate-600">One process. Zero dependencies. Ready in seconds.</p>
         </div>
 
         <div class="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden mb-8">
-          <div class="border-b border-slate-200 px-6 py-4 bg-slate-50">
-            <h3 class="font-semibold text-slate-900">1. Clone & Set Upstream</h3>
+          <div class="border-b border-slate-200 px-6 py-4">
+            <h3 class="font-semibold text-slate-900">1. Clone and configure</h3>
           </div>
           <div class="p-6 bg-[#0a0a0a] text-slate-300 font-mono text-sm overflow-x-auto">
-<pre><code><span class="text-slate-500"># 1. Clone</span>
+<pre><code><span class="text-slate-500"># Clone the repo</span>
 git clone https://github.com/kyoo-147/codex_proxy_for_all_models.git
 cd codex_proxy_for_all_models
 
-<span class="text-slate-500"># 2. Set upstream (Example: Ollama)</span>
+<span class="text-slate-500"># Point to your upstream (example: Ollama)</span>
 export CODEX_PROXY_UPSTREAM_BASE_URL=<span class="text-green-400">"http://127.0.0.1:11434/v1"</span>
 export CODEX_PROXY_UPSTREAM_MODEL=<span class="text-green-400">"qwen3:8b"</span>
 export CODEX_PROXY_PROVIDER_LABEL=<span class="text-green-400">"Ollama"</span>
 
-<span class="text-slate-500"># 3. Run</span>
+<span class="text-slate-500"># Start the proxy</span>
 python -m codex_proxy_for_all_models</code></pre>
           </div>
         </div>
 
         <div class="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
-          <div class="border-b border-slate-200 px-6 py-4 bg-slate-50">
-            <h3 class="font-semibold text-slate-900">2. Configure Codex</h3>
+          <div class="border-b border-slate-200 px-6 py-4">
+            <h3 class="font-semibold text-slate-900">2. Point Codex at the proxy</h3>
           </div>
-          <div class="p-6 font-mono text-sm text-slate-700 overflow-x-auto">
-            <p class="mb-4 text-slate-500 font-sans">Add this to <code class="bg-slate-100 px-1.5 py-0.5 rounded text-slate-800">~/.codex/config.toml</code>:</p>
+          <div class="p-6">
+            <p class="mb-4 text-sm text-slate-500 font-sans">Add this to <code class="bg-slate-100 px-1.5 py-0.5 rounded text-slate-800">~/.codex/config.toml</code>:</p>
+            <div class="bg-[#0a0a0a] text-slate-300 font-mono text-sm rounded-xl p-6 overflow-x-auto">
 <pre><code>model = "qwen3:8b"
 model_provider = "local_model_proxy"
 
@@ -261,7 +289,41 @@ name = "Local Model Proxy"
 base_url = "http://127.0.0.1:8787"
 wire_api = "responses"
 env_key = "DUMMY_API_KEY"</code></pre>
+            </div>
           </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Closing CTA Section (inspired by Astryx) -->
+    <section class="py-24 bg-white">
+      <div class="max-w-7xl mx-auto px-6 grid grid-cols-1 md:grid-cols-3 gap-12 md:gap-8">
+        <div>
+          <h3 class="text-lg font-semibold text-slate-900 mb-4">Design for speed</h3>
+          <p class="text-sm text-slate-600 leading-relaxed">
+            Zero dependencies, instant startup, sub-millisecond translation. The proxy is built so you stop managing infrastructure and start shipping code.
+          </p>
+          <a href="#quick-start" class="inline-flex items-center gap-1 text-sm font-medium text-slate-900 mt-4 hover:text-slate-600 transition-colors">
+            Get started in minutes →
+          </a>
+        </div>
+        <div>
+          <h3 class="text-lg font-semibold text-slate-900 mb-4">Built by developers</h3>
+          <p class="text-sm text-slate-600 leading-relaxed">
+            Open source since day one. Every contribution sharpens the proxy — whether it's a provider compatibility report, a test case, or a docs fix.
+          </p>
+          <a href="https://github.com/kyoo-147/codex_proxy_for_all_models" class="inline-flex items-center gap-1 text-sm font-medium text-slate-900 mt-4 hover:text-slate-600 transition-colors">
+            Contribute on GitHub →
+          </a>
+        </div>
+        <div>
+          <h3 class="text-lg font-semibold text-slate-900 mb-4">Ready for real work</h3>
+          <p class="text-sm text-slate-600 leading-relaxed">
+            56 integration tests, upstream error matrix, pool failover validation. Tested on Python 3.9–3.14 across Ubuntu, Windows, and macOS.
+          </p>
+          <a href="https://github.com/kyoo-147/codex_proxy_for_all_models/actions" class="inline-flex items-center gap-1 text-sm font-medium text-slate-900 mt-4 hover:text-slate-600 transition-colors">
+            See CI results →
+          </a>
         </div>
       </div>
     </section>
@@ -274,10 +336,11 @@ env_key = "DUMMY_API_KEY"</code></pre>
           Codex Proxy
         </div>
         <p class="text-sm text-slate-500">
-          Open Source under the MIT License.
+          MIT License · Open Source
         </p>
         <div class="flex items-center gap-4">
-          <a href="https://github.com/kyoo-147/codex_proxy_for_all_models" class="text-sm text-slate-500 hover:text-slate-900 transition-colors">GitHub Repository</a>
+          <a href="https://github.com/kyoo-147/codex_proxy_for_all_models" class="text-sm text-slate-500 hover:text-slate-900 transition-colors">GitHub</a>
+          <a href="https://pypi.org/project/codex-proxy-for-all-models/" class="text-sm text-slate-500 hover:text-slate-900 transition-colors">PyPI</a>
         </div>
       </div>
     </footer>
