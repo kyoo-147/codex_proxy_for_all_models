@@ -25,59 +25,63 @@ def free_port():
     return port
 
 
-class FakeUpstreamHandler(BaseHTTPRequestHandler):
-    def do_POST(self):
-        length = int(self.headers.get("Content-Length", "0"))
-        payload = json.loads(self.rfile.read(length).decode("utf-8"))
-        if self.path != "/v1/chat/completions":
-            self.send_response(404)
-            self.end_headers()
-            return
-
-        if payload["messages"][-1]["content"] == "tool":
-            body = {
-                "usage": {"prompt_tokens": 3, "completion_tokens": 2, "total_tokens": 5},
-                "choices": [
-                    {
-                        "finish_reason": "tool_calls",
-                        "message": {
-                            "content": "",
-                            "tool_calls": [
-                                {
-                                    "id": "call_1",
-                                    "function": {"name": "shell_command", "arguments": '{"command":"echo hi"}'},
-                                }
-                            ],
-                        },
-                    }
-                ],
-            }
-        else:
-            body = {
-                "usage": {"prompt_tokens": 4, "completion_tokens": 2, "total_tokens": 6},
-                "choices": [
-                    {
-                        "finish_reason": "stop",
-                        "message": {"role": "assistant", "content": "OK"},
-                    }
-                ],
-            }
-
-        encoded = json.dumps(body).encode("utf-8")
-        self.send_response(200)
-        self.send_header("Content-Type", "application/json")
-        self.send_header("Content-Length", str(len(encoded)))
-        self.end_headers()
-        self.wfile.write(encoded)
-
-    def log_message(self, format, *args):
-        return
-
-
 class ServerIntegrationTests(unittest.TestCase):
     def setUp(self):
         upstream_port = free_port()
-        self.upstream = HTTPServer(("127.0.0.1", upstream_port), FakeUpstreamHandler)
+        self.upstream_requests = []
+
+        parent = self
+
+        class TrackingFakeUpstreamHandler(BaseHTTPRequestHandler):
+            def do_POST(self):
+                length = int(self.headers.get("Content-Length", "0"))
+                payload = json.loads(self.rfile.read(length).decode("utf-8"))
+                parent.upstream_requests.append(payload)
+                if self.path != "/v1/chat/completions":
+                    self.send_response(404)
+                    self.end_headers()
+                    return
+
+                if payload["messages"][-1]["content"] == "tool":
+                    body = {
+                        "usage": {"prompt_tokens": 3, "completion_tokens": 2, "total_tokens": 5},
+                        "choices": [
+                            {
+                                "finish_reason": "tool_calls",
+                                "message": {
+                                    "content": "",
+                                    "tool_calls": [
+                                        {
+                                            "id": "call_1",
+                                            "function": {"name": "shell_command", "arguments": '{"command":"echo hi"}'},
+                                        }
+                                    ],
+                                },
+                            }
+                        ],
+                    }
+                else:
+                    body = {
+                        "usage": {"prompt_tokens": 4, "completion_tokens": 2, "total_tokens": 6},
+                        "choices": [
+                            {
+                                "finish_reason": "stop",
+                                "message": {"role": "assistant", "content": "OK"},
+                            }
+                        ],
+                    }
+
+                encoded = json.dumps(body).encode("utf-8")
+                self.send_response(200)
+                self.send_header("Content-Type", "application/json")
+                self.send_header("Content-Length", str(len(encoded)))
+                self.end_headers()
+                self.wfile.write(encoded)
+
+            def log_message(self, format, *args):
+                return
+
+        self.upstream = HTTPServer(("127.0.0.1", upstream_port), TrackingFakeUpstreamHandler)
         self.upstream_thread = threading.Thread(target=self.upstream.serve_forever, daemon=True)
         self.upstream_thread.start()
 
@@ -157,6 +161,13 @@ class ServerIntegrationTests(unittest.TestCase):
         self.assertEqual(payload["output"][0]["type"], "message")
         self.assertEqual(payload["output"][0]["content"][0]["text"], "OK")
 
+        upstream_messages = self.upstream_requests[0]["messages"]
+        self.assertEqual(upstream_messages[0]["role"], "assistant")
+        self.assertEqual(upstream_messages[0]["tool_calls"][0]["id"], "call_1")
+        self.assertEqual(upstream_messages[1]["role"], "tool")
+        self.assertEqual(upstream_messages[1]["tool_call_id"], "call_1")
+        self.assertEqual(upstream_messages[1]["content"], "hi")
+
 
 class PoolModeServerIntegrationTests(unittest.TestCase):
     def setUp(self):
@@ -222,10 +233,12 @@ class PoolModeServerIntegrationTests(unittest.TestCase):
         time.sleep(0.05)
 
     def tearDown(self):
-        self.proxy.shutdown()
-        self.proxy.server_close()
-        self.upstream.shutdown()
-        self.upstream.server_close()
+        if hasattr(self, "proxy"):
+            self.proxy.shutdown()
+            self.proxy.server_close()
+        if hasattr(self, "upstream"):
+            self.upstream.shutdown()
+            self.upstream.server_close()
 
     def test_models_catalog_keeps_curated_slug(self):
         models = json.loads(urllib.request.urlopen(f"{self.base_url}/v1/models").read())
@@ -289,10 +302,12 @@ class UpstreamErrorIntegrationTests(unittest.TestCase):
         time.sleep(0.05)
 
     def tearDown(self):
-        self.proxy.shutdown()
-        self.proxy.server_close()
-        self.upstream.shutdown()
-        self.upstream.server_close()
+        if hasattr(self, "proxy"):
+            self.proxy.shutdown()
+            self.proxy.server_close()
+        if hasattr(self, "upstream"):
+            self.upstream.shutdown()
+            self.upstream.server_close()
 
     def _assert_error(self, expected_code: int, expected_type: str):
         req = urllib.request.Request(
@@ -332,6 +347,41 @@ class UpstreamErrorIntegrationTests(unittest.TestCase):
     def test_404_returns_not_found_error(self):
         self._setup(self._make_error_handler(404))
         self._assert_error(404, "not_found_error")
+
+    def test_invalid_upstream_json_returns_upstream_error(self):
+        class InvalidJsonHandler(BaseHTTPRequestHandler):
+            def do_POST(self):
+                length = int(self.headers.get("Content-Length", "0"))
+                self.rfile.read(length)
+                body = b"not valid json"
+                self.send_response(200)
+                self.send_header("Content-Type", "application/json")
+                self.send_header("Content-Length", str(len(body)))
+                self.end_headers()
+                self.wfile.write(body)
+
+            def log_message(self, *args):
+                return
+
+        self._setup(InvalidJsonHandler)
+        self._assert_error(502, "upstream_error")
+
+    def test_connection_refused_returns_upstream_error(self):
+        dead_port = free_port()
+        config = ProxyConfig(
+            upstream_base_url=f"http://127.0.0.1:{dead_port}/v1",
+            upstream_api_key="secret",
+            upstream_model="qwen/qwen3-8b",
+            provider_label="Ollama",
+            listen_host="127.0.0.1",
+            listen_port=free_port(),
+        )
+        self.proxy = create_server(config)
+        self.proxy_thread = threading.Thread(target=self.proxy.serve_forever, daemon=True)
+        self.proxy_thread.start()
+        self.base_url = f"http://127.0.0.1:{config.listen_port}"
+        time.sleep(0.05)
+        self._assert_error(502, "upstream_error")
 
 
 if __name__ == "__main__":

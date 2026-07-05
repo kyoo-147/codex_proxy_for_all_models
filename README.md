@@ -299,6 +299,13 @@ Current coverage in this repo verifies:
 - response mapping
 - local fake-upstream integration
 - `/health`, `/models`, `/responses`
+- function_call / function_call_output mapping
+- full tool-loop round trip (with upstream payload assertions)
+- upstream error matrix: 401, 403, 404, 429, 500, 503
+- invalid upstream JSON handling
+- upstream connection refused handling
+- compile check in CI
+- pool config loading, validation, router failover
 
 README media can be regenerated with:
 
