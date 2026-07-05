@@ -2,7 +2,7 @@
 import '../styles/global.css';
 
 interface Props {
-	title: string;
+  title: string;
 }
 
 const { title } = Astro.props;
@@ -10,18 +10,41 @@ const { title } = Astro.props;
 
 <!doctype html>
 <html lang="en">
-	<head>
-		<meta charset="UTF-8" />
-		<meta name="description" content="Codex Proxy for All Models" />
-		<meta name="viewport" content="width=device-width" />
-		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-		<link rel="preconnect" href="https://fonts.googleapis.com">
-		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-		<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-		<meta name="generator" content={Astro.generator} />
-		<title>{title}</title>
-	</head>
-	<body class="bg-[#fafafa] text-slate-900 font-sans antialiased selection:bg-slate-200">
-		<slot />
-	</body>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="description" content="Codex Proxy for All Models — A lightweight bridge between Codex and any OpenAI-compatible backend." />
+    <meta name="viewport" content="width=device-width" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="preconnect" href="https://api.fontshare.com" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://api.fontshare.com/v2/css?f[]=geist@1,2&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+    <meta name="generator" content={Astro.generator} />
+    <title>{title}</title>
+    <script>
+      // Scroll reveal observer — runs once at load, no scroll listeners
+      if (typeof IntersectionObserver !== 'undefined') {
+        const observer = new IntersectionObserver((entries) => {
+          for (const entry of entries) {
+            if (entry.isIntersecting) {
+              entry.target.classList.add('visible');
+              observer.unobserve(entry.target);
+            }
+          }
+        }, { threshold: 0.08 });
+        document.addEventListener('DOMContentLoaded', () => {
+          document.querySelectorAll('.reveal').forEach((el) => observer.observe(el));
+        });
+      } else {
+        // Fallback: make everything visible immediately
+        document.addEventListener('DOMContentLoaded', () => {
+          document.querySelectorAll('.reveal').forEach((el) => el.classList.add('visible'));
+        });
+      }
+    </script>
+  </head>
+  <body class="bg-[#050505] text-white font-sans antialiased selection:bg-white/20">
+    <slot />
+  </body>
 </html>
