@@ -313,6 +313,20 @@ README media can be regenerated with:
 python scripts/generate_readme_media.py
 ```
 
+## Provider validation
+
+Validate a provider works with the proxy using the included scripts:
+
+```bash
+# Linux / macOS
+./scripts/validate-provider.sh
+
+# Windows
+scripts\validate-provider.bat
+```
+
+The script checks `/health`, `/v1/models`, text round-trip, and tool-calling round-trip. Pass the proxy URL as an argument if not using the default `http://127.0.0.1:8787`.
+
 ## Lightweight by design
 
 Compared with heavier proxy stacks, this repo stays small on purpose:
@@ -339,6 +353,7 @@ That makes it easy to audit, easy to fork, and easy to run on small local machin
 - [Codex setup](docs/codex-setup.md)
 - [NVIDIA pool setups](docs/nvidia-pools.md)
 - [Provider guide](docs/providers.md)
+- [Provider compatibility](docs/provider-compatibility.md)
 - [Architecture notes](docs/architecture.md)
 - [Troubleshooting](docs/troubleshooting.md)
 - [Publishing](docs/publishing.md)
