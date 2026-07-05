@@ -23,3 +23,17 @@ jobs:
 
       - name: Compile check
         run: python -m compileall src tests
+
+  build-website:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Install dependencies
+        run: npm install
+        working-directory: website
+      - name: Build website
+        run: npm run build
+        working-directory: website
